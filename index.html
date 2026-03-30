@@ -1,1 +1,88 @@
+<!DOCTYPE html>
+<html lang="fr">
 
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Labyrinthe — Jeu 2D</title>
+    <meta name="description" content="Jeu de labyrinthe 2D généré procéduralement avec mapping clavier rotatif." />
+    <link rel="stylesheet" href="style.css" />
+</head>
+
+<body>
+
+    <!-- ── Header ────────────────────────────────────────────────── -->
+    <header class="game-header">
+        <div>
+            <p class="game-header__eyebrow">Jeu · Labyrinthe</p>
+            <h1>MAZE</h1>
+        </div>
+        <p class="game-header__meta">
+            Algorithme DFS<br>
+            Mapping rotatif
+        </p>
+    </header>
+
+    <!-- ── Keymap ────────────────────────────────────────────────── -->
+    <section id="keymap" aria-live="polite" aria-label="Touches actives et leur direction" role="status">
+        <!-- Rempli dynamiquement par JS -->
+    </section>
+
+    <!-- ── Contrôles ─────────────────────────────────────────────── -->
+    <div class="controls">
+        <button id="generateBtn" class="btn-generate" aria-label="Générer un nouveau labyrinthe">Générer</button>
+    </div>
+
+    <!-- ── Stats ─────────────────────────────────────────────────── -->
+    <div class="stats-bar" aria-live="polite">
+        <div class="stat-item">
+            <span class="stat-label">Mouvements</span>
+            <span class="stat-value" id="moveCount">0</span>
+        </div>
+    </div>
+
+    <!-- ── Canvas ────────────────────────────────────────────────── -->
+    <div class="canvas-wrapper">
+        <canvas id="mazeCanvas" role="img" aria-label="Grille du labyrinthe"></canvas>
+    </div>
+
+    <!-- ── Bannière victoire ─────────────────────────────────────── -->
+    <div id="victoryBanner" class="hidden" role="alert" aria-live="assertive">
+        <span class="victory-eyebrow">Sortie atteinte</span>
+        <span class="victory-title">BRAVO.</span>
+        <span class="victory-sub" id="victoryMoves"></span>
+        <span class="victory-dismiss">Cliquer pour fermer</span>
+    </div>
+
+    <!-- ── Scripts ───────────────────────────────────────────────── -->
+    <script src="labyrinthe.js"></script>
+    <script>
+        const generateBtn = document.getElementById("generateBtn");
+
+        function startNewGame() {
+            initGame(17);
+        }
+
+        generateBtn.addEventListener("click", startNewGame);
+
+        document.addEventListener("keydown", (e) => {
+            if (document.activeElement && document.activeElement.tagName === "INPUT") return;
+            handleKey(e.key);
+        });
+
+        // Fermer la bannière de victoire au clic
+        document.getElementById("victoryBanner").addEventListener("click", () => {
+            document.getElementById("victoryBanner").classList.add("hidden");
+        });
+
+        let resizeTimer;
+        window.addEventListener("resize", () => {
+            clearTimeout(resizeTimer);
+            resizeTimer = setTimeout(() => renderMaze(), 80);
+        });
+
+        startNewGame();
+    </script>
+</body>
+
+</html>
