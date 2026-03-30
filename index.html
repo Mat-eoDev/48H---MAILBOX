@@ -1,0 +1,2446 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>MailBox — Vérification de sécurité</title>
+<style>
+/* ============================================================
+   RESET & BASE
+   ============================================================ */
+*, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+
+:root {
+  --primary: #1a73e8;
+  --primary-dark: #1557b0;
+  --bg: #f6f8fc;
+  --sidebar-bg: #1a1a2e;
+  --sidebar-hover: #16213e;
+  --card: #ffffff;
+  --text: #202124;
+  --text-secondary: #5f6368;
+  --border: #e0e0e0;
+  --danger: #e74c3c;
+  --success: #27ae60;
+  --warning: #f39c12;
+  --glitch-intensity: 0;
+  --hue-shift: 0deg;
+}
+
+html, body {
+  height: 100%;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+  background: var(--bg);
+  color: var(--text);
+  overflow: hidden;
+  transition: filter 0.8s ease;
+}
+
+body.glitch-1 { --glitch-intensity: 0.15; }
+body.glitch-2 { --glitch-intensity: 0.3; --hue-shift: 5deg; }
+body.glitch-3 { --glitch-intensity: 0.5; --hue-shift: 15deg; }
+body.glitch-4 { --glitch-intensity: 0.75; --hue-shift: 30deg; }
+body.glitch-5 { --glitch-intensity: 1; --hue-shift: 45deg; }
+
+body.glitch-2, body.glitch-3, body.glitch-4, body.glitch-5 {
+  filter: hue-rotate(var(--hue-shift));
+}
+
+/* ============================================================
+   GLITCH OVERLAY
+   ============================================================ */
+#glitch-overlay {
+  position: fixed; inset: 0;
+  pointer-events: none;
+  z-index: 9999;
+  opacity: var(--glitch-intensity);
+  mix-blend-mode: overlay;
+}
+
+#glitch-overlay::before {
+  content: '';
+  position: absolute; inset: 0;
+  background: repeating-linear-gradient(
+    0deg,
+    transparent,
+    transparent 2px,
+    rgba(0, 255, 0, 0.03) 2px,
+    rgba(0, 255, 0, 0.03) 4px
+  );
+  animation: scanlines 0.1s linear infinite;
+}
+
+#glitch-overlay::after {
+  content: '';
+  position: absolute; inset: 0;
+  background: linear-gradient(
+    transparent 0%,
+    rgba(255, 0, 0, 0.05) 50%,
+    transparent 100%
+  );
+  animation: glitch-bar 4s ease-in-out infinite;
+}
+
+@keyframes scanlines {
+  0% { transform: translateY(0); }
+  100% { transform: translateY(4px); }
+}
+
+@keyframes glitch-bar {
+  0%, 100% { transform: translateY(-100vh); }
+  50% { transform: translateY(100vh); }
+}
+
+.screen-tear {
+  position: fixed;
+  left: 0; right: 0;
+  height: 4px;
+  background: rgba(255, 0, 100, 0.3);
+  z-index: 9998;
+  pointer-events: none;
+  animation: tear 0.15s linear forwards;
+}
+
+@keyframes tear {
+  0% { opacity: 1; transform: scaleX(1); }
+  100% { opacity: 0; transform: scaleX(0.5) translateX(100px); }
+}
+
+/* ============================================================
+   LAYOUT — EMAIL INTERFACE
+   ============================================================ */
+#app {
+  display: grid;
+  grid-template-columns: 240px 1fr;
+  grid-template-rows: 56px 1fr;
+  height: 100vh;
+  transition: all 0.5s ease;
+}
+
+/* HEADER */
+.header {
+  grid-column: 1 / -1;
+  background: var(--card);
+  border-bottom: 1px solid var(--border);
+  display: flex;
+  align-items: center;
+  padding: 0 16px;
+  gap: 16px;
+  z-index: 100;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.08);
+}
+
+.header-logo {
+  font-size: 22px;
+  font-weight: 700;
+  color: var(--primary);
+  letter-spacing: -0.5px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.header-logo .logo-icon {
+  width: 32px; height: 32px;
+  background: var(--primary);
+  border-radius: 8px;
+  display: flex; align-items: center; justify-content: center;
+  color: white;
+  font-size: 16px;
+  font-weight: 800;
+}
+
+.header-search {
+  flex: 1;
+  max-width: 600px;
+  margin: 0 auto;
+  position: relative;
+}
+
+.header-search input {
+  width: 100%;
+  padding: 10px 16px 10px 40px;
+  border: none;
+  background: #f1f3f4;
+  border-radius: 24px;
+  font-size: 14px;
+  outline: none;
+  transition: background 0.2s, box-shadow 0.2s;
+}
+
+.header-search input:focus {
+  background: white;
+  box-shadow: 0 1px 6px rgba(0,0,0,0.15);
+}
+
+.header-search::before {
+  content: '🔍';
+  position: absolute;
+  left: 14px; top: 50%;
+  transform: translateY(-50%);
+  font-size: 14px;
+  opacity: 0.5;
+}
+
+.header-status {
+  font-size: 12px;
+  color: var(--text-secondary);
+  min-width: 120px;
+  text-align: right;
+}
+
+.header-avatar {
+  width: 32px; height: 32px;
+  background: linear-gradient(135deg, #667eea, #764ba2);
+  border-radius: 50%;
+  display: flex; align-items: center; justify-content: center;
+  color: white;
+  font-size: 14px;
+  font-weight: 600;
+}
+
+/* SIDEBAR */
+.sidebar {
+  background: var(--sidebar-bg);
+  padding: 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  overflow-y: auto;
+  transition: background 1s ease;
+}
+
+.sidebar-compose {
+  background: var(--primary);
+  color: white;
+  border: none;
+  padding: 12px 24px;
+  border-radius: 16px;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  margin-bottom: 12px;
+  transition: transform 0.15s, box-shadow 0.2s;
+  display: flex; align-items: center; gap: 8px;
+}
+
+.sidebar-compose:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(26, 115, 232, 0.4);
+}
+
+.sidebar-item {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 8px 12px;
+  border-radius: 8px;
+  color: #b0b8c8;
+  font-size: 13px;
+  cursor: pointer;
+  transition: all 0.15s;
+  position: relative;
+}
+
+.sidebar-item:hover, .sidebar-item.active {
+  background: var(--sidebar-hover);
+  color: white;
+}
+
+.sidebar-item .badge {
+  margin-left: auto;
+  background: var(--danger);
+  color: white;
+  font-size: 11px;
+  padding: 2px 7px;
+  border-radius: 10px;
+  font-weight: 600;
+}
+
+.sidebar-item .icon {
+  font-size: 16px;
+  width: 20px;
+  text-align: center;
+}
+
+/* MAIN CONTENT */
+.content {
+  overflow-y: auto;
+  padding: 0;
+  position: relative;
+}
+
+/* ============================================================
+   INBOX
+   ============================================================ */
+.inbox-toolbar {
+  display: flex;
+  align-items: center;
+  padding: 8px 16px;
+  border-bottom: 1px solid var(--border);
+  gap: 8px;
+  background: var(--card);
+  position: sticky;
+  top: 0;
+  z-index: 10;
+}
+
+.inbox-toolbar .checkbox {
+  width: 18px; height: 18px;
+  border: 2px solid var(--border);
+  border-radius: 3px;
+  cursor: pointer;
+}
+
+.inbox-toolbar .toolbar-btn {
+  background: none; border: none;
+  padding: 6px 8px;
+  border-radius: 4px;
+  color: var(--text-secondary);
+  cursor: pointer;
+  font-size: 13px;
+  transition: background 0.15s;
+}
+
+.inbox-toolbar .toolbar-btn:hover { background: #f1f3f4; }
+
+.inbox-tab {
+  display: flex;
+  border-bottom: 1px solid var(--border);
+  background: var(--card);
+  position: sticky;
+  top: 41px;
+  z-index: 10;
+}
+
+.inbox-tab .tab {
+  padding: 12px 20px;
+  font-size: 13px;
+  color: var(--text-secondary);
+  cursor: pointer;
+  border-bottom: 3px solid transparent;
+  transition: all 0.2s;
+  display: flex; align-items: center; gap: 6px;
+}
+
+.inbox-tab .tab.active {
+  color: var(--primary);
+  border-bottom-color: var(--primary);
+  font-weight: 600;
+}
+
+.email-row {
+  display: grid;
+  grid-template-columns: 40px 180px 1fr auto;
+  align-items: center;
+  padding: 10px 16px;
+  border-bottom: 1px solid #f1f3f4;
+  cursor: pointer;
+  transition: all 0.15s;
+  background: var(--card);
+  position: relative;
+}
+
+.email-row:hover {
+  box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+  z-index: 2;
+}
+
+.email-row.unread {
+  background: #eaf1fb;
+  font-weight: 600;
+}
+
+.email-row.highlight {
+  animation: email-pulse 2s ease-in-out infinite;
+}
+
+@keyframes email-pulse {
+  0%, 100% { background: #eaf1fb; }
+  50% { background: #d4e4fa; }
+}
+
+.email-row .email-checkbox {
+  width: 18px; height: 18px;
+  border: 2px solid var(--border);
+  border-radius: 3px;
+}
+
+.email-row .email-sender {
+  font-size: 13px;
+  color: var(--text);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.email-row .email-preview {
+  font-size: 13px;
+  color: var(--text-secondary);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  padding: 0 12px;
+  font-weight: 400;
+}
+
+.email-row .email-preview .subject {
+  color: var(--text);
+}
+
+.email-row .email-date {
+  font-size: 12px;
+  color: var(--text-secondary);
+  white-space: nowrap;
+}
+
+/* EMAIL VIEW */
+.email-view {
+  padding: 24px;
+  max-width: 800px;
+}
+
+.email-view-header {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  margin-bottom: 24px;
+}
+
+.email-view-avatar {
+  width: 40px; height: 40px;
+  border-radius: 50%;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 18px;
+  font-weight: 600;
+  color: white;
+  flex-shrink: 0;
+}
+
+.email-view-meta h2 {
+  font-size: 20px;
+  font-weight: 400;
+  margin-bottom: 4px;
+}
+
+.email-view-meta .sender-line {
+  font-size: 13px;
+  color: var(--text-secondary);
+}
+
+.email-view-meta .sender-name { color: var(--text); font-weight: 600; }
+
+.email-view-body {
+  font-size: 14px;
+  line-height: 1.7;
+  color: var(--text);
+}
+
+.email-view-body p { margin-bottom: 12px; }
+
+.email-view-body .verify-btn {
+  display: inline-block;
+  background: var(--primary);
+  color: white;
+  padding: 12px 32px;
+  border-radius: 8px;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  border: none;
+  margin-top: 8px;
+  transition: all 0.2s;
+}
+
+.email-view-body .verify-btn:hover {
+  background: var(--primary-dark);
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(26,115,232,0.3);
+}
+
+.back-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 12px;
+  border: none;
+  background: none;
+  color: var(--text-secondary);
+  cursor: pointer;
+  font-size: 13px;
+  border-radius: 8px;
+  margin-bottom: 16px;
+  transition: background 0.15s;
+}
+
+.back-btn:hover { background: #f1f3f4; }
+
+/* ============================================================
+   CAPTCHA MODAL
+   ============================================================ */
+.modal-overlay {
+  position: fixed; inset: 0;
+  background: rgba(0, 0, 0, 0.5);
+  display: flex; align-items: center; justify-content: center;
+  z-index: 1000;
+  opacity: 0;
+  animation: fadeIn 0.3s ease forwards;
+  backdrop-filter: blur(4px);
+}
+
+@keyframes fadeIn {
+  to { opacity: 1; }
+}
+
+.modal {
+  background: var(--card);
+  border-radius: 16px;
+  padding: 32px;
+  max-width: 520px;
+  width: 90%;
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+  transform: scale(0.9) translateY(20px);
+  animation: modalIn 0.4s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+  position: relative;
+  overflow: hidden;
+}
+
+.modal.wide { max-width: 640px; }
+.modal.maze-modal { max-width: 700px; }
+
+@keyframes modalIn {
+  to { transform: scale(1) translateY(0); }
+}
+
+.modal-title {
+  font-size: 18px;
+  font-weight: 700;
+  margin-bottom: 8px;
+  display: flex; align-items: center; gap: 8px;
+}
+
+.modal-subtitle {
+  font-size: 13px;
+  color: var(--text-secondary);
+  margin-bottom: 24px;
+  line-height: 1.5;
+}
+
+.modal-footer {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+  margin-top: 24px;
+}
+
+.btn {
+  padding: 10px 24px;
+  border-radius: 8px;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  border: none;
+  transition: all 0.15s;
+}
+
+.btn-primary {
+  background: var(--primary);
+  color: white;
+}
+
+.btn-primary:hover {
+  background: var(--primary-dark);
+  box-shadow: 0 2px 8px rgba(26,115,232,0.3);
+}
+
+.btn-secondary {
+  background: #f1f3f4;
+  color: var(--text);
+}
+
+.btn-secondary:hover { background: #e2e5e8; }
+
+.btn-danger {
+  background: var(--danger);
+  color: white;
+}
+
+.btn-danger:hover { background: #c0392b; }
+
+.btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+/* ============================================================
+   CAPTCHA STYLES
+   ============================================================ */
+
+/* Checkbox CAPTCHA */
+.captcha-checkbox-container {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  padding: 20px 24px;
+  border: 2px solid var(--border);
+  border-radius: 8px;
+  cursor: pointer;
+  transition: all 0.2s;
+  background: #fafafa;
+}
+
+.captcha-checkbox-container:hover {
+  border-color: #bbb;
+  background: #f5f5f5;
+}
+
+.captcha-checkbox {
+  width: 28px; height: 28px;
+  border: 2px solid #c0c0c0;
+  border-radius: 4px;
+  display: flex; align-items: center; justify-content: center;
+  transition: all 0.2s;
+  position: relative;
+  flex-shrink: 0;
+}
+
+.captcha-checkbox.checking {
+  border-color: var(--primary);
+}
+
+.captcha-checkbox .spinner {
+  width: 20px; height: 20px;
+  border: 2px solid #e0e0e0;
+  border-top-color: var(--primary);
+  border-radius: 50%;
+  animation: spin 0.8s linear infinite;
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+
+.captcha-checkbox .check {
+  color: var(--success);
+  font-size: 20px;
+  font-weight: bold;
+  animation: checkPop 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+@keyframes checkPop {
+  0% { transform: scale(0); }
+  50% { transform: scale(1.3); }
+  100% { transform: scale(1); }
+}
+
+.captcha-checkbox .cross {
+  color: var(--danger);
+  font-size: 18px;
+  font-weight: bold;
+}
+
+.captcha-label {
+  font-size: 14px;
+  color: var(--text);
+  user-select: none;
+}
+
+.captcha-brand {
+  margin-left: auto;
+  text-align: center;
+  opacity: 0.6;
+}
+
+.captcha-brand .brand-icon {
+  font-size: 24px;
+  margin-bottom: 2px;
+}
+
+.captcha-brand .brand-text {
+  font-size: 9px;
+  color: var(--text-secondary);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.captcha-status {
+  margin-top: 12px;
+  font-size: 13px;
+  text-align: center;
+  min-height: 20px;
+  color: var(--danger);
+}
+
+/* Image CAPTCHA */
+.image-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 4px;
+  border-radius: 8px;
+  overflow: hidden;
+  border: 2px solid var(--border);
+}
+
+.image-tile {
+  aspect-ratio: 1;
+  cursor: pointer;
+  position: relative;
+  overflow: hidden;
+  transition: all 0.15s;
+}
+
+.image-tile:hover { filter: brightness(0.9); }
+
+.image-tile.selected::after {
+  content: '✓';
+  position: absolute; inset: 0;
+  background: rgba(26, 115, 232, 0.5);
+  display: flex; align-items: center; justify-content: center;
+  color: white;
+  font-size: 32px;
+  font-weight: bold;
+}
+
+.image-tile .tile-content {
+  width: 100%; height: 100%;
+  display: flex; align-items: center; justify-content: center;
+  flex-direction: column;
+  gap: 4px;
+}
+
+/* Key Quiz */
+.key-slots {
+  display: flex;
+  gap: 12px;
+  justify-content: center;
+  margin: 24px 0;
+  flex-wrap: wrap;
+}
+
+.key-slot {
+  width: 64px; height: 64px;
+  border: 2px dashed var(--border);
+  border-radius: 12px;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 22px;
+  font-weight: 700;
+  color: var(--text-secondary);
+  transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+  background: #fafafa;
+}
+
+.key-slot.filled {
+  border: 2px solid var(--primary);
+  background: linear-gradient(135deg, #e8f0fe, #d2e3fc);
+  color: var(--primary);
+  transform: scale(1.05);
+  box-shadow: 0 4px 12px rgba(26,115,232,0.2);
+  animation: keyPop 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+@keyframes keyPop {
+  0% { transform: scale(0.5); opacity: 0; }
+  60% { transform: scale(1.15); }
+  100% { transform: scale(1.05); opacity: 1; }
+}
+
+.key-slot.active {
+  border-color: var(--warning);
+  animation: keyPulse 1s ease-in-out infinite;
+}
+
+@keyframes keyPulse {
+  0%, 100% { box-shadow: 0 0 0 0 rgba(243,156,18,0.4); }
+  50% { box-shadow: 0 0 0 8px rgba(243,156,18,0); }
+}
+
+.key-instruction {
+  text-align: center;
+  font-size: 13px;
+  color: var(--text-secondary);
+  margin-top: 8px;
+}
+
+/* Slider CAPTCHA */
+.slider-track {
+  width: 100%;
+  height: 48px;
+  background: #f1f3f4;
+  border-radius: 24px;
+  position: relative;
+  border: 2px solid var(--border);
+  cursor: pointer;
+  user-select: none;
+  -webkit-user-select: none;
+}
+
+.slider-fill {
+  position: absolute;
+  left: 0; top: 0; bottom: 0;
+  background: linear-gradient(90deg, var(--primary), #4285f4);
+  border-radius: 24px;
+  pointer-events: none;
+}
+
+.slider-handle {
+  width: 44px; height: 44px;
+  background: white;
+  border-radius: 50%;
+  box-shadow: 0 2px 10px rgba(0,0,0,0.25);
+  display: flex; align-items: center; justify-content: center;
+  font-size: 18px;
+  position: absolute;
+  top: 50%;
+  left: 0;
+  transform: translateY(-50%);
+  cursor: grab;
+  transition: box-shadow 0.2s, transform 0.1s;
+  z-index: 2;
+  border: 2px solid var(--primary);
+  color: var(--primary);
+  font-weight: bold;
+}
+
+.slider-handle:hover {
+  box-shadow: 0 4px 16px rgba(26,115,232,0.4);
+  transform: translateY(-50%) scale(1.08);
+}
+
+.slider-handle:active, .slider-handle.dragging {
+  cursor: grabbing;
+  box-shadow: 0 6px 20px rgba(26,115,232,0.5);
+  transform: translateY(-50%) scale(1.12);
+}
+
+.slider-text {
+  position: absolute;
+  left: 50%; top: 50%;
+  transform: translate(-50%, -50%);
+  font-size: 13px;
+  color: var(--text-secondary);
+  pointer-events: none;
+  user-select: none;
+}
+
+.slider-progress-text {
+  text-align: center;
+  margin-top: 12px;
+  font-size: 24px;
+  font-weight: 700;
+  color: var(--primary);
+  font-variant-numeric: tabular-nums;
+}
+
+/* Don't Click Button */
+.dont-click-zone {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 16px;
+  padding: 24px;
+}
+
+.dont-click-btn {
+  width: 180px; height: 180px;
+  border-radius: 50%;
+  border: none;
+  background: linear-gradient(135deg, #e74c3c, #c0392b);
+  color: white;
+  font-size: 16px;
+  font-weight: 700;
+  cursor: pointer;
+  box-shadow: 0 8px 32px rgba(231, 76, 60, 0.4);
+  transition: all 0.2s;
+  animation: btnPulse 2s ease-in-out infinite;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+}
+
+@keyframes btnPulse {
+  0%, 100% { box-shadow: 0 8px 32px rgba(231, 76, 60, 0.4); transform: scale(1); }
+  50% { box-shadow: 0 12px 48px rgba(231, 76, 60, 0.6); transform: scale(1.05); }
+}
+
+.dont-click-btn:hover {
+  transform: scale(1.1) !important;
+  box-shadow: 0 16px 48px rgba(231, 76, 60, 0.6) !important;
+}
+
+.dont-click-warning {
+  font-size: 12px;
+  color: var(--danger);
+  text-align: center;
+  animation: blink 1s ease-in-out infinite;
+}
+
+@keyframes blink {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.3; }
+}
+
+/* Progress Bar */
+.fake-progress-container {
+  padding: 24px;
+  text-align: center;
+}
+
+.fake-progress-bar {
+  width: 100%;
+  height: 8px;
+  background: #e0e0e0;
+  border-radius: 4px;
+  overflow: hidden;
+  margin: 24px 0 12px;
+}
+
+.fake-progress-fill {
+  height: 100%;
+  background: linear-gradient(90deg, var(--primary), var(--success));
+  border-radius: 4px;
+  transition: width 0.3s ease;
+}
+
+.fake-progress-percent {
+  font-size: 48px;
+  font-weight: 800;
+  color: var(--primary);
+  font-variant-numeric: tabular-nums;
+  margin: 16px 0;
+}
+
+.fake-progress-status {
+  font-size: 13px;
+  color: var(--text-secondary);
+  min-height: 40px;
+}
+
+.fake-progress-hint {
+  font-size: 11px;
+  color: transparent;
+  margin-top: 24px;
+  cursor: pointer;
+  transition: color 0.3s;
+  user-select: none;
+  padding: 4px 8px;
+}
+
+.fake-progress-hint:hover {
+  color: var(--text-secondary);
+}
+
+/* Maze */
+.maze-container {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 16px;
+}
+
+.maze-canvas {
+  border: 2px solid var(--border);
+  border-radius: 8px;
+  background: #0d1117;
+}
+
+.maze-controls-display {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+  justify-content: center;
+}
+
+.maze-key-mapping {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 12px;
+  background: #f1f3f4;
+  border-radius: 6px;
+  font-size: 12px;
+}
+
+.maze-key-mapping .key-badge {
+  background: var(--sidebar-bg);
+  color: white;
+  padding: 3px 8px;
+  border-radius: 4px;
+  font-weight: 700;
+  font-size: 11px;
+  min-width: 28px;
+  text-align: center;
+}
+
+.maze-key-mapping .direction {
+  color: var(--text-secondary);
+}
+
+.maze-status {
+  font-size: 13px;
+  color: var(--text-secondary);
+  text-align: center;
+}
+
+.maze-recalibrate {
+  position: absolute;
+  top: 50%; left: 50%;
+  transform: translate(-50%, -50%);
+  background: rgba(0,0,0,0.9);
+  color: var(--danger);
+  padding: 16px 32px;
+  border-radius: 12px;
+  font-size: 14px;
+  font-weight: 600;
+  z-index: 10;
+  animation: recalFlash 0.5s ease-in-out 3;
+  pointer-events: none;
+}
+
+@keyframes recalFlash {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.5; }
+}
+
+/* ============================================================
+   FINAL EMAIL COMPOSER
+   ============================================================ */
+.composer {
+  max-width: 700px;
+  margin: 24px auto;
+  background: var(--card);
+  border-radius: 12px;
+  box-shadow: 0 4px 24px rgba(0,0,0,0.12);
+  overflow: hidden;
+}
+
+.composer-header {
+  background: var(--sidebar-bg);
+  color: white;
+  padding: 12px 16px;
+  font-size: 14px;
+  font-weight: 600;
+  display: flex; align-items: center; justify-content: space-between;
+}
+
+.composer-field {
+  display: flex;
+  align-items: center;
+  padding: 10px 16px;
+  border-bottom: 1px solid #f1f3f4;
+  font-size: 13px;
+}
+
+.composer-field label {
+  color: var(--text-secondary);
+  min-width: 90px;
+}
+
+.composer-field input {
+  flex: 1;
+  border: none;
+  outline: none;
+  font-size: 13px;
+  color: var(--text);
+}
+
+.composer-body {
+  padding: 16px;
+  min-height: 150px;
+}
+
+.composer-body textarea {
+  width: 100%;
+  min-height: 120px;
+  border: none;
+  outline: none;
+  font-size: 14px;
+  line-height: 1.6;
+  resize: vertical;
+  font-family: inherit;
+  color: var(--text);
+}
+
+.composer-toolbar {
+  display: flex;
+  align-items: center;
+  padding: 12px 16px;
+  gap: 8px;
+  border-top: 1px solid #f1f3f4;
+}
+
+.composer-instruction {
+  text-align: center;
+  padding: 16px;
+  font-size: 13px;
+  color: var(--text-secondary);
+  line-height: 1.5;
+  background: #fef7e0;
+  margin: 0 16px 16px;
+  border-radius: 8px;
+  border: 1px solid #fdd835;
+}
+
+/* ============================================================
+   ENDINGS
+   ============================================================ */
+.ending-screen {
+  position: fixed; inset: 0;
+  display: flex; align-items: center; justify-content: center;
+  z-index: 2000;
+  animation: fadeIn 0.5s ease forwards;
+}
+
+.ending-success {
+  background: linear-gradient(135deg, #0d1117, #1a1a2e);
+}
+
+.ending-fail {
+  background: linear-gradient(135deg, #1a0000, #2d0000);
+}
+
+.ending-content {
+  text-align: center;
+  color: white;
+  max-width: 500px;
+  padding: 40px;
+}
+
+.ending-content .ending-icon {
+  font-size: 72px;
+  margin-bottom: 24px;
+  animation: endingPop 0.6s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+@keyframes endingPop {
+  0% { transform: scale(0) rotate(-180deg); opacity: 0; }
+  100% { transform: scale(1) rotate(0); opacity: 1; }
+}
+
+.ending-content h1 {
+  font-size: 32px;
+  font-weight: 800;
+  margin-bottom: 12px;
+  letter-spacing: -0.5px;
+}
+
+.ending-content p {
+  font-size: 16px;
+  opacity: 0.7;
+  line-height: 1.6;
+}
+
+.ending-success h1 { color: var(--success); }
+.ending-fail h1 { color: var(--danger); }
+
+.ending-content .ending-sentence {
+  margin-top: 24px;
+  padding: 16px;
+  background: rgba(255,255,255,0.05);
+  border-radius: 8px;
+  font-size: 18px;
+  font-style: italic;
+  letter-spacing: 0.5px;
+  border: 1px solid rgba(255,255,255,0.1);
+}
+
+/* ============================================================
+   WORD NOTIFICATION
+   ============================================================ */
+#word-notification {
+  position: fixed;
+  top: 50%; left: 50%;
+  transform: translate(-50%, -50%) scale(0.8);
+  background: rgba(0, 0, 0, 0.95);
+  color: white;
+  padding: 32px 48px;
+  border-radius: 16px;
+  z-index: 5000;
+  text-align: center;
+  pointer-events: none;
+  opacity: 0;
+  transition: all 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+  backdrop-filter: blur(8px);
+  border: 1px solid rgba(255,255,255,0.1);
+}
+
+#word-notification.visible {
+  opacity: 1;
+  transform: translate(-50%, -50%) scale(1);
+}
+
+#word-notification .notif-check {
+  font-size: 36px;
+  margin-bottom: 12px;
+  color: var(--success);
+}
+
+#word-notification .notif-title {
+  font-size: 16px;
+  font-weight: 600;
+  margin-bottom: 16px;
+}
+
+#word-notification .notif-word {
+  font-size: 32px;
+  font-weight: 800;
+  color: var(--warning);
+  letter-spacing: 2px;
+  text-transform: uppercase;
+  animation: wordGlow 1.5s ease-in-out infinite;
+}
+
+@keyframes wordGlow {
+  0%, 100% { text-shadow: 0 0 10px rgba(243,156,18,0.3); }
+  50% { text-shadow: 0 0 20px rgba(243,156,18,0.6); }
+}
+
+#word-notification .notif-hint {
+  font-size: 12px;
+  color: #888;
+  margin-top: 12px;
+}
+
+/* ============================================================
+   UTILITY
+   ============================================================ */
+.text-center { text-align: center; }
+.mt-16 { margin-top: 16px; }
+.mt-8 { margin-top: 8px; }
+.mb-16 { margin-bottom: 16px; }
+
+.shake {
+  animation: shake 0.5s cubic-bezier(0.36, 0.07, 0.19, 0.97);
+}
+
+@keyframes shake {
+  10%, 90% { transform: translateX(-2px); }
+  20%, 80% { transform: translateX(4px); }
+  30%, 50%, 70% { transform: translateX(-6px); }
+  40%, 60% { transform: translateX(6px); }
+}
+
+.typing-dots::after {
+  content: '';
+  animation: dots 1.5s steps(4, end) infinite;
+}
+
+@keyframes dots {
+  0% { content: ''; }
+  25% { content: '.'; }
+  50% { content: '..'; }
+  75% { content: '...'; }
+}
+
+/* New email slide-in */
+.email-row.new-email {
+  animation: slideIn 0.5s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+@keyframes slideIn {
+  from { transform: translateY(-100%); opacity: 0; }
+  to { transform: translateY(0); opacity: 1; }
+}
+
+/* Fade transition */
+.fade-out { animation: fadeOut 0.3s ease forwards; }
+
+@keyframes fadeOut {
+  to { opacity: 0; transform: translateY(-10px); }
+}
+</style>
+</head>
+<body>
+
+<div id="app"></div>
+<div id="glitch-overlay"></div>
+<div id="word-notification">
+  <div class="notif-check">✓</div>
+  <div class="notif-title">Validation réussie.</div>
+  <div class="notif-word" id="notif-word-text"></div>
+  <div class="notif-hint">Retenez ce mot.</div>
+</div>
+
+<script>
+// ============================================================
+// CONFIGURATION
+// ============================================================
+const CONFIG = {
+  secretWords: ['les', 'humains', 'sont', 'des', 'robots', 'qui', 'doutent'],
+  secretSentence: 'les humains sont des robots qui doutent',
+  stages: [
+    'inbox',          // 0
+    'emailView',      // 1
+    'checkboxCaptcha',// 2 → word: les
+    'imageCaptcha',   // 3 → word: humains
+    'keyQuiz',        // 4 → word: sont
+    'sliderCaptcha',  // 5 → word: des
+    'dontClick',      // 6 → word: robots
+    'progressBar',    // 7 → word: qui
+    'labyrinth',      // 8 → word: doutent
+    'finalEmail',     // 9
+    'ending'          // 10
+  ],
+  toneMessages: [
+    'Veuillez vérifier votre identité.',
+    'Vérification supplémentaire requise.',
+    'Nous devons confirmer votre humanité.',
+    'Une anomalie a été détectée.',
+    'Nous détectons un comportement inhabituel.',
+    'Votre patience est... intéressante.',
+    'Pourquoi insistez-vous ?',
+    'Dernière étape. Probablement.',
+  ]
+};
+
+// ============================================================
+// STATE
+// ============================================================
+const state = {
+  currentStage: 0,
+  collectedWords: [],
+  userKeys: [],
+  checkboxAttempts: 0,
+  imageAttempts: 0,
+  sliderAttempts: 0,
+  failAttempts: 0,
+  glitchLevel: 0,
+  mazeCompleted: false,
+  mazeMoves: 0,
+  mazeControlsShuffle: 0
+};
+
+// ============================================================
+// DOM UTILITIES
+// ============================================================
+const $ = (sel, parent = document) => parent.querySelector(sel);
+const $$ = (sel, parent = document) => [...parent.querySelectorAll(sel)];
+const app = document.getElementById('app');
+
+function createElement(tag, attrs = {}, children = []) {
+  const el = document.createElement(tag);
+  for (const [k, v] of Object.entries(attrs)) {
+    if (k === 'className') el.className = v;
+    else if (k === 'innerHTML') el.innerHTML = v;
+    else if (k === 'textContent') el.textContent = v;
+    else if (k.startsWith('on')) el.addEventListener(k.slice(2).toLowerCase(), v);
+    else el.setAttribute(k, v);
+  }
+  children.forEach(c => {
+    if (typeof c === 'string') el.appendChild(document.createTextNode(c));
+    else if (c) el.appendChild(c);
+  });
+  return el;
+}
+
+// ============================================================
+// GLITCH ENGINE
+// ============================================================
+function setGlitchLevel(level) {
+  state.glitchLevel = level;
+  document.body.className = level > 0 ? `glitch-${Math.min(level, 5)}` : '';
+}
+
+function triggerScreenTear() {
+  const tear = document.createElement('div');
+  tear.className = 'screen-tear';
+  tear.style.top = Math.random() * 100 + 'vh';
+  document.body.appendChild(tear);
+  setTimeout(() => tear.remove(), 200);
+}
+
+function startGlitchTears() {
+  setInterval(() => {
+    if (state.glitchLevel >= 2) {
+      triggerScreenTear();
+    }
+  }, 3000 - state.glitchLevel * 400);
+}
+
+// ============================================================
+// WORD NOTIFICATION SYSTEM
+// ============================================================
+function showWordNotification(word) {
+  return new Promise(resolve => {
+    state.collectedWords.push(word);
+    const notif = document.getElementById('word-notification');
+    const wordText = document.getElementById('notif-word-text');
+    wordText.textContent = `« ${word} »`;
+    notif.classList.add('visible');
+
+    setTimeout(() => {
+      notif.classList.remove('visible');
+      setTimeout(resolve, 400);
+    }, 3000);
+  });
+}
+
+// ============================================================
+// EMAIL DATA
+// ============================================================
+const emails = [
+  {
+    id: 'facture',
+    sender: 'Service Facturation',
+    email: 'comptabilite@services.fr',
+    subject: 'Votre facture du mois de mars',
+    preview: 'Bonjour, veuillez trouver ci-joint votre facture mensuelle pour le mois de mars 2026...',
+    date: '10:32',
+    unread: false,
+    avatar: '📄',
+    avatarBg: '#34a853',
+    body: `<p>Bonjour,</p><p>Veuillez trouver ci-joint votre facture mensuelle pour le mois de mars 2026.</p><p>Montant : 47,99 €<br>Date d'échéance : 15 avril 2026</p><p>Cordialement,<br>Le Service Facturation</p>`
+  },
+  {
+    id: 'verify',
+    sender: 'Sécurité MailBox',
+    email: 'securite@mailbox-verify.fr',
+    subject: '⚠️ Action requise : Vérifiez votre identité',
+    preview: 'Activité suspecte détectée sur votre compte. Veuillez compléter la vérification...',
+    date: '09:15',
+    unread: true,
+    highlight: true,
+    avatar: '🔒',
+    avatarBg: '#ea4335',
+    body: `<p>Bonjour,</p><p>Nous avons détecté une <strong>activité inhabituelle</strong> sur votre compte MailBox.</p><p>Par mesure de sécurité, nous vous demandons de compléter une vérification rapide pour confirmer que vous êtes bien le propriétaire de ce compte.</p><p>Cette procédure ne prendra que quelques instants.</p><p style="margin-top:20px"><button class="verify-btn" id="start-verify-btn">Commencer la vérification</button></p><p style="margin-top:16px;font-size:12px;color:#888">Si vous n'êtes pas à l'origine de cette demande, veuillez ignorer cet email.</p>`
+  },
+  {
+    id: 'projet',
+    sender: 'Thomas Martin',
+    email: 'thomas.martin@entreprise.fr',
+    subject: 'Re: Projet Q2 — Mise à jour',
+    preview: 'Salut, j\'ai mis à jour le document partagé avec les derniers chiffres. Tu peux y jeter un œil ?',
+    date: 'Hier',
+    unread: true,
+    avatar: 'T',
+    avatarBg: '#4285f4',
+    body: `<p>Salut,</p><p>J'ai mis à jour le document partagé avec les derniers chiffres. Tu peux y jeter un œil quand tu as un moment ?</p><p>La réunion est toujours prévue pour lundi 14h.</p><p>À+<br>Thomas</p>`
+  },
+  {
+    id: 'promo',
+    sender: 'Boutique Mode',
+    email: 'newsletter@mode-boutique.fr',
+    subject: '🛍️ Soldes de printemps — Jusqu\'à -50%',
+    preview: 'Profitez de nos offres exceptionnelles de printemps ! Livraison gratuite dès 30€...',
+    date: '28 mars',
+    unread: false,
+    avatar: '🛍',
+    avatarBg: '#fbbc04',
+    body: `<p>Profitez de nos offres exceptionnelles de printemps !</p><p>Jusqu'à <strong>-50%</strong> sur une sélection d'articles.</p><p>Livraison gratuite dès 30€ d'achat.</p><p><em>Offre valable jusqu'au 5 avril 2026.</em></p>`
+  },
+  {
+    id: 'photos',
+    sender: 'Julie Bernard',
+    email: 'julie.bernard@email.fr',
+    subject: 'Photos du week-end 📸',
+    preview: 'Coucou ! Voilà les photos du barbecue de samedi. Elles sont trop bien !',
+    date: '27 mars',
+    unread: false,
+    avatar: 'J',
+    avatarBg: '#a142f4',
+    body: `<p>Coucou !</p><p>Voilà les photos du barbecue de samedi. Elles sont trop bien ! 😄</p><p>J'ai mis les meilleures dans l'album partagé.</p><p>Bisous,<br>Julie</p>`
+  }
+];
+
+// ============================================================
+// RENDERING — MAIN LAYOUT
+// ============================================================
+function renderApp() {
+  app.innerHTML = `
+    <header class="header">
+      <div class="header-logo">
+        <div class="logo-icon">M</div>
+        MailBox
+      </div>
+      <div class="header-search">
+        <input type="text" placeholder="Rechercher dans les messages" />
+      </div>
+      <div class="header-status" id="header-status">30 mars 2026</div>
+      <div class="header-avatar">M</div>
+    </header>
+    <nav class="sidebar">
+      <button class="sidebar-compose">
+        <span>✏️</span> Nouveau message
+      </button>
+      <div class="sidebar-item active" data-folder="inbox">
+        <span class="icon">📥</span> Boîte de réception
+        <span class="badge" id="inbox-badge">2</span>
+      </div>
+      <div class="sidebar-item" data-folder="sent">
+        <span class="icon">📤</span> Envoyés
+      </div>
+      <div class="sidebar-item" data-folder="drafts">
+        <span class="icon">📝</span> Brouillons
+      </div>
+      <div class="sidebar-item" data-folder="spam">
+        <span class="icon">⚠️</span> Spam
+        <span class="badge">12</span>
+      </div>
+      <div class="sidebar-item" data-folder="trash">
+        <span class="icon">🗑️</span> Corbeille
+      </div>
+    </nav>
+    <main class="content" id="content"></main>
+  `;
+
+  // Sidebar click handling
+  $$('.sidebar-item').forEach(item => {
+    item.addEventListener('click', () => {
+      $$('.sidebar-item').forEach(i => i.classList.remove('active'));
+      item.classList.add('active');
+    });
+  });
+}
+
+// ============================================================
+// RENDERING — INBOX
+// ============================================================
+function renderInbox() {
+  const content = $('#content');
+  content.innerHTML = `
+    <div class="inbox-toolbar">
+      <div class="checkbox"></div>
+      <button class="toolbar-btn">↻ Actualiser</button>
+      <button class="toolbar-btn">⋮ Plus</button>
+      <span style="margin-left:auto;font-size:12px;color:var(--text-secondary)">1-5 sur 5</span>
+    </div>
+    <div class="inbox-tab">
+      <div class="tab active"><span>📥</span> Principale</div>
+      <div class="tab"><span>🏷️</span> Promotions</div>
+      <div class="tab"><span>💬</span> Réseaux sociaux</div>
+    </div>
+    <div id="email-list"></div>
+  `;
+
+  const emailList = $('#email-list');
+  emails.forEach(email => {
+    const row = document.createElement('div');
+    row.className = `email-row${email.unread ? ' unread' : ''}${email.highlight ? ' highlight' : ''}`;
+    row.innerHTML = `
+      <div class="email-checkbox"></div>
+      <div class="email-sender">${email.sender}</div>
+      <div class="email-preview">
+        <span class="subject">${email.subject}</span> — ${email.preview}
+      </div>
+      <div class="email-date">${email.date}</div>
+    `;
+    row.addEventListener('click', () => openEmail(email));
+    emailList.appendChild(row);
+  });
+
+  // Simulate new email arrival after 3s
+  setTimeout(() => {
+    const badge = $('#inbox-badge');
+    if (badge) badge.textContent = '3';
+
+    const newRow = document.createElement('div');
+    newRow.className = 'email-row unread new-email';
+    newRow.innerHTML = `
+      <div class="email-checkbox"></div>
+      <div class="email-sender">Système MailBox</div>
+      <div class="email-preview">
+        <span class="subject">Rappel : Vérification en attente</span> — Votre vérification d'identité est toujours en attente...
+      </div>
+      <div class="email-date">À l'instant</div>
+    `;
+    newRow.addEventListener('click', () => {
+      const verifyEmail = emails.find(e => e.id === 'verify');
+      openEmail(verifyEmail);
+    });
+    emailList.insertBefore(newRow, emailList.firstChild);
+  }, 4000);
+}
+
+function openEmail(email) {
+  const content = $('#content');
+  content.innerHTML = `
+    <div class="email-view">
+      <button class="back-btn" id="back-to-inbox">← Retour à la boîte de réception</button>
+      <div class="email-view-header">
+        <div class="email-view-avatar" style="background:${email.avatarBg}">
+          ${email.avatar}
+        </div>
+        <div class="email-view-meta">
+          <h2>${email.subject}</h2>
+          <div class="sender-line">
+            <span class="sender-name">${email.sender}</span>
+            &lt;${email.email}&gt;
+          </div>
+        </div>
+      </div>
+      <div class="email-view-body">${email.body}</div>
+    </div>
+  `;
+
+  $('#back-to-inbox').addEventListener('click', renderInbox);
+
+  if (email.id === 'verify') {
+    state.currentStage = 1;
+    const btn = $('#start-verify-btn');
+    if (btn) {
+      btn.addEventListener('click', () => {
+        state.currentStage = 2;
+        showCaptchaCheckbox();
+      });
+    }
+  }
+}
+
+// ============================================================
+// STAGE 2 — CHECKBOX CAPTCHA → word: "les"
+// ============================================================
+function showCaptchaCheckbox() {
+  updateHeaderStatus(CONFIG.toneMessages[0]);
+  setGlitchLevel(0);
+
+  const overlay = createModal('Vérification de sécurité', 'Confirmez que vous n\'êtes pas un robot.');
+  const body = $('.modal-body', overlay);
+  body.innerHTML = `
+    <div class="captcha-checkbox-container" id="captcha-check-box">
+      <div class="captcha-checkbox" id="captcha-checkbox-icon"></div>
+      <div class="captcha-label">Je ne suis pas un robot</div>
+      <div class="captcha-brand">
+        <div class="brand-icon">🛡️</div>
+        <div class="brand-text">SecureCAPTCHA</div>
+      </div>
+    </div>
+    <div class="captcha-status" id="captcha-status"></div>
+  `;
+
+  const box = $('#captcha-check-box');
+  const icon = $('#captcha-checkbox-icon');
+  const status = $('#captcha-status');
+
+  box.addEventListener('click', () => {
+    if (icon.dataset.locked) return;
+    icon.dataset.locked = 'true';
+    state.checkboxAttempts++;
+
+    // Show spinner
+    icon.innerHTML = '<div class="spinner"></div>';
+    icon.classList.add('checking');
+
+    const delay = 1500 + Math.random() * 1000;
+    setTimeout(() => {
+      if (state.checkboxAttempts < 3) {
+        icon.innerHTML = '<span class="cross">✕</span>';
+        icon.classList.remove('checking');
+        status.textContent = state.checkboxAttempts === 1
+          ? 'Échec de la vérification. Réessayez.'
+          : 'Échec. Êtes-vous sûr d\'être humain ?';
+        box.classList.add('shake');
+        setTimeout(() => {
+          box.classList.remove('shake');
+          icon.innerHTML = '';
+          icon.dataset.locked = '';
+        }, 800);
+      } else {
+        // Success
+        icon.innerHTML = '<span class="check">✓</span>';
+        icon.classList.remove('checking');
+        status.textContent = '';
+        status.style.color = 'var(--success)';
+        status.textContent = 'Vérification réussie.';
+        setTimeout(() => {
+          overlay.remove();
+          showWordNotification('les').then(() => {
+            state.currentStage = 3;
+            showImageCaptcha();
+          });
+        }, 1000);
+      }
+    }, delay);
+  });
+}
+
+// ============================================================
+// STAGE 3 — IMAGE CAPTCHA → word: "humains"
+// ============================================================
+function showImageCaptcha() {
+  updateHeaderStatus(CONFIG.toneMessages[1]);
+  setGlitchLevel(1);
+
+  const overlay = createModal(
+    'Vérification visuelle',
+    'Sélectionnez toutes les images contenant des feux rouges.',
+    true
+  );
+  const body = $('.modal-body', overlay);
+
+  // Generate tiles — none actually contain traffic lights
+  const tileStyles = [
+    { bg: 'linear-gradient(135deg, #2d5016, #4a7c24)', shapes: '🌳🏠', desc: 'parc' },
+    { bg: 'linear-gradient(135deg, #4a4a4a, #2d2d2d)', shapes: '🚗🏢', desc: 'rue' },
+    { bg: 'linear-gradient(135deg, #1a3a5c, #2980b9)', shapes: '🌊⛵', desc: 'mer' },
+    { bg: 'linear-gradient(135deg, #8B4513, #D2691E)', shapes: '🏔️🌲', desc: 'montagne' },
+    { bg: 'linear-gradient(135deg, #444, #222)', shapes: '🏗️🏢', desc: 'ville' },
+    { bg: 'linear-gradient(135deg, #1a5276, #2e86c1)', shapes: '🌃🏙️', desc: 'nuit' },
+    { bg: 'linear-gradient(135deg, #784212, #b9770e)', shapes: '🏜️☀️', desc: 'desert' },
+    { bg: 'linear-gradient(135deg, #196f3d, #27ae60)', shapes: '🌿🌺', desc: 'jardin' },
+    { bg: 'linear-gradient(135deg, #5b2c6f, #8e44ad)', shapes: '🌆🌇', desc: 'crepuscule' },
+  ];
+
+  const selectedTiles = new Set();
+
+  body.innerHTML = `
+    <div class="image-grid" id="image-grid"></div>
+    <div class="modal-footer">
+      <button class="btn btn-primary" id="img-verify-btn">Vérifier</button>
+    </div>
+    <div class="captcha-status" id="img-captcha-status"></div>
+  `;
+
+  const grid = $('#image-grid');
+  tileStyles.forEach((tile, i) => {
+    const div = document.createElement('div');
+    div.className = 'image-tile';
+    div.innerHTML = `<div class="tile-content" style="background:${tile.bg};font-size:28px">${tile.shapes}</div>`;
+    div.addEventListener('click', () => {
+      div.classList.toggle('selected');
+      if (selectedTiles.has(i)) selectedTiles.delete(i);
+      else selectedTiles.add(i);
+    });
+    grid.appendChild(div);
+  });
+
+  const verifyBtn = $('#img-verify-btn');
+  const status = $('#img-captcha-status');
+
+  verifyBtn.addEventListener('click', () => {
+    state.imageAttempts++;
+
+    if (state.imageAttempts < 3) {
+      status.textContent = state.imageAttempts === 1
+        ? 'Réponse incorrecte. Réessayez.'
+        : 'Toujours incorrect. Concentrez-vous.';
+      grid.classList.add('shake');
+      setTimeout(() => grid.classList.remove('shake'), 500);
+
+      // Reset selections
+      selectedTiles.clear();
+      $$('.image-tile', grid).forEach(t => t.classList.remove('selected'));
+    } else {
+      // Pass with sarcastic message
+      status.style.color = 'var(--success)';
+      status.textContent = 'Aucune image ne contenait de feu rouge. Mais vous avez réussi quand même.';
+      verifyBtn.disabled = true;
+
+      setTimeout(() => {
+        overlay.remove();
+        showWordNotification('humains').then(() => {
+          state.currentStage = 4;
+          showKeyQuiz();
+        });
+      }, 2000);
+    }
+  });
+}
+
+// ============================================================
+// STAGE 4 — KEY QUIZ → word: "sont"
+// ============================================================
+function showKeyQuiz() {
+  updateHeaderStatus(CONFIG.toneMessages[2]);
+
+  const overlay = createModal(
+    'Configuration personnalisée',
+    'Quelles sont vos 5 touches clavier préférées ? Appuyez sur 5 touches différentes.'
+  );
+  const body = $('.modal-body', overlay);
+
+  state.userKeys = [];
+
+  body.innerHTML = `
+    <div class="key-slots" id="key-slots">
+      <div class="key-slot active" data-index="0"></div>
+      <div class="key-slot" data-index="1"></div>
+      <div class="key-slot" data-index="2"></div>
+      <div class="key-slot" data-index="3"></div>
+      <div class="key-slot" data-index="4"></div>
+    </div>
+    <div class="key-instruction">Appuyez sur une touche du clavier...</div>
+    <div class="captcha-status" id="key-status" style="color:var(--text-secondary)">0 / 5</div>
+  `;
+
+  const keyHandler = (e) => {
+    e.preventDefault();
+    const key = e.key.length === 1 ? e.key.toUpperCase() : e.key;
+
+    if (state.userKeys.includes(key)) return;
+    if (state.userKeys.length >= 5) return;
+
+    state.userKeys.push(key);
+    const index = state.userKeys.length - 1;
+    const slot = $(`.key-slot[data-index="${index}"]`);
+    slot.textContent = key;
+    slot.classList.add('filled');
+    slot.classList.remove('active');
+
+    const nextSlot = $(`.key-slot[data-index="${index + 1}"]`);
+    if (nextSlot) nextSlot.classList.add('active');
+
+    $('#key-status').textContent = `${state.userKeys.length} / 5`;
+
+    if (state.userKeys.length === 5) {
+      document.removeEventListener('keydown', keyHandler);
+      $('#key-status').style.color = 'var(--success)';
+      $('#key-status').textContent = 'Touches enregistrées !';
+      $('.key-instruction').textContent = `Vos touches : ${state.userKeys.join(' · ')}`;
+
+      setTimeout(() => {
+        overlay.remove();
+        showWordNotification('sont').then(() => {
+          state.currentStage = 5;
+          showSliderCaptcha();
+        });
+      }, 1500);
+    }
+  };
+
+  setTimeout(() => document.addEventListener('keydown', keyHandler), 300);
+}
+
+// ============================================================
+// STAGE 5 — SLIDER CAPTCHA → word: "des"
+// ============================================================
+function showSliderCaptcha() {
+  updateHeaderStatus(CONFIG.toneMessages[3]);
+  setGlitchLevel(2);
+
+  const overlay = createModal(
+    'Vérification tactile',
+    'Faites glisser le curseur jusqu\'au bout pour vérifier.'
+  );
+  const body = $('.modal-body', overlay);
+
+  state.sliderAttempts = 0;
+  let isDragging = false;
+  let sliderPercent = 0;
+
+  body.innerHTML = `
+    <div class="slider-track" id="slider-track">
+      <div class="slider-fill" id="slider-fill" style="width:0%"></div>
+      <div class="slider-text">Vérification en cours...</div>
+    </div>
+    <div style="text-align:center;margin-top:16px">
+      <div id="slider-pct-wrapper" style="display:inline-block;cursor:default">
+        <span id="slider-pct" style="font-size:48px;font-weight:800;color:var(--primary);font-variant-numeric:tabular-nums;user-select:none">0%</span>
+      </div>
+    </div>
+    <div class="captcha-status" id="slider-status" style="margin-top:8px"></div>
+  `;
+
+  const fill = $('#slider-fill');
+  const pctWrapper = $('#slider-pct-wrapper');
+  const pctSpan = $('#slider-pct');
+  const status = $('#slider-status');
+  let inputActive = false;
+
+  function activateInput() {
+    if (inputActive) return;
+    inputActive = true;
+
+    const input = document.createElement('input');
+    input.type = 'text';
+    input.inputMode = 'numeric';
+    input.value = '';
+    input.placeholder = '0';
+    input.maxLength = 3;
+    input.style.cssText = `
+      width: 100px; font-size: 48px; font-weight: 800;
+      color: var(--primary); text-align: center;
+      border: none; border-bottom: 3px solid var(--primary);
+      outline: none; background: transparent;
+      font-family: inherit; caret-color: var(--primary);
+    `;
+
+    // Create a % label next to input
+    const wrapper = document.createElement('div');
+    wrapper.style.cssText = 'display:inline-flex;align-items:baseline;gap:2px';
+    wrapper.appendChild(input);
+    const pctLabel = document.createElement('span');
+    pctLabel.textContent = '%';
+    pctLabel.style.cssText = 'font-size:48px;font-weight:800;color:var(--primary)';
+    wrapper.appendChild(pctLabel);
+
+    pctWrapper.innerHTML = '';
+    pctWrapper.appendChild(wrapper);
+    input.focus();
+
+    function handleSubmit() {
+      const val = input.value.trim();
+      const num = parseInt(val, 10);
+
+      if (isNaN(num) || val === '') return;
+
+      if (num === 100) {
+        state.sliderAttempts++;
+
+        if (state.sliderAttempts < 3) {
+          const msgs = [
+            'Erreur réseau. La valeur a été réinitialisée.',
+            'Timeout serveur. Réessayez.'
+          ];
+          status.style.color = 'var(--danger)';
+          status.textContent = msgs[state.sliderAttempts - 1];
+          fill.style.width = '0%';
+          input.value = '';
+          input.placeholder = '0';
+          wrapper.classList.add('shake');
+          setTimeout(() => wrapper.classList.remove('shake'), 500);
+        } else {
+          fill.style.width = '100%';
+          input.disabled = true;
+          input.value = '100';
+          status.style.color = 'var(--success)';
+          status.textContent = 'Vérifié.';
+
+          setTimeout(() => {
+            overlay.remove();
+            showWordNotification('des').then(() => {
+              state.currentStage = 6;
+              showDontClick();
+            });
+          }, 1000);
+        }
+      } else {
+        status.style.color = 'var(--danger)';
+        status.textContent = 'Valeur incorrecte.';
+        wrapper.classList.add('shake');
+        setTimeout(() => wrapper.classList.remove('shake'), 500);
+        input.value = '';
+      }
+    }
+
+    input.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter') handleSubmit();
+    });
+  }
+
+  // Click on the 0% text to activate — no visual hint
+  pctWrapper.addEventListener('click', activateInput);
+}
+
+// ============================================================
+// STAGE 6 — DON'T CLICK → word: "robots"
+// ============================================================
+function showDontClick() {
+  updateHeaderStatus(CONFIG.toneMessages[4]);
+  setGlitchLevel(3);
+
+  const overlay = createModal(
+    'Test de contrôle',
+    'Suivez les instructions ci-dessous avec attention.'
+  );
+  const body = $('.modal-body', overlay);
+
+  body.innerHTML = `
+    <div class="dont-click-zone">
+      <div class="dont-click-warning">⚠️ ATTENTION — NE PAS APPUYER ⚠️</div>
+      <button class="dont-click-btn" id="dont-click-btn">NE CLIQUEZ<br>PAS</button>
+      <div class="dont-click-warning">Ce bouton ne doit pas être activé.</div>
+    </div>
+    <div class="captcha-status" id="dont-click-status"></div>
+  `;
+
+  const btn = $('#dont-click-btn');
+  const status = $('#dont-click-status');
+
+  btn.addEventListener('click', () => {
+    btn.disabled = true;
+    btn.style.background = 'linear-gradient(135deg, #555, #333)';
+    btn.style.animation = 'none';
+    btn.textContent = '...';
+    status.style.color = 'var(--warning)';
+    status.textContent = 'Vous avez cliqué. Pourquoi ?';
+
+    setTimeout(() => {
+      status.style.color = 'var(--success)';
+      status.textContent = 'Comportement humain confirmé.';
+
+      setTimeout(() => {
+        overlay.remove();
+        showWordNotification('robots').then(() => {
+          state.currentStage = 7;
+          showProgressBar();
+        });
+      }, 1500);
+    }, 2000);
+  });
+}
+
+// ============================================================
+// STAGE 7 — FAKE PROGRESS BAR → word: "qui"
+// ============================================================
+function showProgressBar() {
+  updateHeaderStatus(CONFIG.toneMessages[5]);
+
+  const overlay = createModal(
+    'Compilation des résultats',
+    'Veuillez patienter pendant l\'analyse de vos réponses.'
+  );
+  const body = $('.modal-body', overlay);
+
+  body.innerHTML = `
+    <div class="fake-progress-container">
+      <div class="fake-progress-bar">
+        <div class="fake-progress-fill" id="progress-fill" style="width:0%"></div>
+      </div>
+      <div class="fake-progress-percent" id="progress-pct">0%</div>
+      <div class="fake-progress-status" id="progress-status">Initialisation...</div>
+      <div class="fake-progress-hint" id="progress-hint">Cliquez ici pour passer</div>
+    </div>
+  `;
+
+  const fill = $('#progress-fill');
+  const pct = $('#progress-pct');
+  const status = $('#progress-status');
+  const hint = $('#progress-hint');
+
+  const messages = [
+    { at: 10, msg: 'Analyse des réponses...' },
+    { at: 25, msg: 'Vérification biométrique...' },
+    { at: 40, msg: 'Consultation de la base de données...' },
+    { at: 55, msg: 'Croisement des résultats...' },
+    { at: 70, msg: 'Presque terminé...' },
+    { at: 82, msg: 'Finalisation...' },
+    { at: 88, msg: 'Encore un instant...' },
+    { at: 90, msg: 'Erreur inattendue. Recalcul en cours...' },
+    { at: 91, msg: '...' },
+  ];
+
+  let progress = 0;
+  let msgIndex = 0;
+
+  const interval = setInterval(() => {
+    if (progress < 89) {
+      progress += Math.random() * 3 + 0.5;
+      if (progress > 89) progress = 89;
+    } else if (progress < 91) {
+      progress += 0.05;
+      if (progress > 91) progress = 91;
+    }
+    // Stuck at ~91
+
+    fill.style.width = progress + '%';
+    pct.textContent = Math.floor(progress) + '%';
+
+    if (msgIndex < messages.length && progress >= messages[msgIndex].at) {
+      status.textContent = messages[msgIndex].msg;
+      msgIndex++;
+    }
+  }, 150);
+
+  // Hint becomes visible after a while
+  setTimeout(() => {
+    hint.style.color = 'rgba(0,0,0,0.15)';
+  }, 8000);
+
+  hint.addEventListener('click', () => {
+    clearInterval(interval);
+    progress = 100;
+    fill.style.width = '100%';
+    pct.textContent = '100%';
+    status.textContent = 'Analyse terminée.';
+
+    setTimeout(() => {
+      overlay.remove();
+      showWordNotification('qui').then(() => {
+        state.currentStage = 8;
+        showLabyrinth();
+      });
+    }, 1000);
+  });
+}
+
+// ============================================================
+// STAGE 8 — LABYRINTH → word: "doutent"
+// ============================================================
+function showLabyrinth() {
+  updateHeaderStatus(CONFIG.toneMessages[6]);
+  setGlitchLevel(4);
+  startGlitchTears();
+
+  const overlay = createModal(
+    'Épreuve finale',
+    'Naviguez jusqu\'à la sortie. Utilisez vos touches personnalisées.',
+    false,
+    'maze-modal'
+  );
+  const body = $('.modal-body', overlay);
+
+  // Generate maze
+  const COLS = 12, ROWS = 8;
+  const maze = generateMaze(COLS, ROWS);
+  const cellSize = 28;
+  const canvasW = (COLS * 2 + 1) * cellSize;
+  const canvasH = (ROWS * 2 + 1) * cellSize;
+
+  // Player start & goal
+  const player = { x: 1, y: 1 };
+  const goal = { x: COLS * 2 - 1, y: ROWS * 2 - 1 };
+
+  // Key mappings — use first 4 user keys for directions
+  const directions = ['Haut', 'Bas', 'Gauche', 'Droite'];
+  const dirVectors = [
+    { dx: 0, dy: -1 },
+    { dx: 0, dy: 1 },
+    { dx: -1, dy: 0 },
+    { dx: 1, dy: 0 }
+  ];
+
+  let keyMap = {};
+  const usableKeys = state.userKeys.length >= 4
+    ? state.userKeys.slice(0, 4)
+    : ['Z', 'S', 'Q', 'D'];
+
+  function shuffleMapping() {
+    const shuffled = [...Array(4).keys()];
+    // Fisher-Yates
+    for (let i = shuffled.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1));
+      [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
+    }
+    keyMap = {};
+    usableKeys.forEach((key, i) => {
+      keyMap[key.toLowerCase()] = dirVectors[shuffled[i]];
+      keyMap[key.toUpperCase()] = dirVectors[shuffled[i]];
+    });
+    return shuffled;
+  }
+
+  let currentMapping = shuffleMapping();
+
+  body.innerHTML = `
+    <div class="maze-container" style="position:relative">
+      <div class="maze-controls-display" id="maze-controls"></div>
+      <canvas id="maze-canvas" width="${canvasW}" height="${canvasH}" class="maze-canvas"></canvas>
+      <div class="maze-status" id="maze-status">Trouvez la sortie (carré vert).</div>
+    </div>
+  `;
+
+  function renderControls() {
+    const controlsDiv = $('#maze-controls');
+    controlsDiv.innerHTML = usableKeys.map((key, i) => `
+      <div class="maze-key-mapping">
+        <span class="key-badge">${key}</span>
+        <span class="direction">→ ${directions[currentMapping[i]]}</span>
+      </div>
+    `).join('');
+  }
+  renderControls();
+
+  // Draw maze on canvas
+  const canvas = $('#maze-canvas');
+  const ctx = canvas.getContext('2d');
+
+  function drawMaze() {
+    ctx.fillStyle = '#0d1117';
+    ctx.fillRect(0, 0, canvasW, canvasH);
+
+    // Walls
+    for (let y = 0; y < maze.length; y++) {
+      for (let x = 0; x < maze[y].length; x++) {
+        if (maze[y][x] === 1) {
+          ctx.fillStyle = '#21262d';
+          ctx.fillRect(x * cellSize, y * cellSize, cellSize, cellSize);
+          // Wall border accent
+          ctx.fillStyle = '#30363d';
+          ctx.fillRect(x * cellSize, y * cellSize, cellSize, 1);
+          ctx.fillRect(x * cellSize, y * cellSize, 1, cellSize);
+        }
+      }
+    }
+
+    // Goal
+    ctx.fillStyle = '#27ae60';
+    ctx.shadowColor = '#27ae60';
+    ctx.shadowBlur = 15;
+    ctx.fillRect(goal.x * cellSize + 4, goal.y * cellSize + 4, cellSize - 8, cellSize - 8);
+    ctx.shadowBlur = 0;
+
+    // Player
+    ctx.fillStyle = '#e74c3c';
+    ctx.shadowColor = '#e74c3c';
+    ctx.shadowBlur = 12;
+    ctx.beginPath();
+    ctx.arc(
+      player.x * cellSize + cellSize / 2,
+      player.y * cellSize + cellSize / 2,
+      cellSize / 2 - 4, 0, Math.PI * 2
+    );
+    ctx.fill();
+    ctx.shadowBlur = 0;
+  }
+
+  drawMaze();
+
+  // Movement handler
+  const mazeKeyHandler = (e) => {
+    const key = e.key;
+    const dir = keyMap[key];
+    if (!dir) return;
+    e.preventDefault();
+
+    const nx = player.x + dir.dx;
+    const ny = player.y + dir.dy;
+
+    if (ny >= 0 && ny < maze.length && nx >= 0 && nx < maze[0].length && maze[ny][nx] === 0) {
+      player.x = nx;
+      player.y = ny;
+      state.mazeMoves++;
+      drawMaze();
+
+      // Shuffle controls after some moves
+      if (state.mazeMoves === 15 && state.mazeControlsShuffle === 0) {
+        state.mazeControlsShuffle++;
+        showRecalibrateMsg(overlay);
+        currentMapping = shuffleMapping();
+        renderControls();
+      }
+      if (state.mazeMoves === 35 && state.mazeControlsShuffle === 1) {
+        state.mazeControlsShuffle++;
+        showRecalibrateMsg(overlay);
+        currentMapping = shuffleMapping();
+        renderControls();
+      }
+
+      // Check win
+      if (player.x === goal.x && player.y === goal.y) {
+        document.removeEventListener('keydown', mazeKeyHandler);
+        $('#maze-status').textContent = 'Sortie trouvée !';
+        $('#maze-status').style.color = 'var(--success)';
+
+        setTimeout(() => {
+          overlay.remove();
+          showWordNotification('doutent').then(() => {
+            state.currentStage = 9;
+            showFinalEmail();
+          });
+        }, 1500);
+      }
+    }
+  };
+
+  setTimeout(() => document.addEventListener('keydown', mazeKeyHandler), 300);
+}
+
+function showRecalibrateMsg(overlay) {
+  const msg = document.createElement('div');
+  msg.className = 'maze-recalibrate';
+  msg.textContent = '⚠ Recalibrage des contrôles...';
+  const container = $('.maze-container', overlay);
+  if (container) {
+    container.appendChild(msg);
+    setTimeout(() => msg.remove(), 1800);
+  }
+  triggerScreenTear();
+  triggerScreenTear();
+}
+
+// Maze generation — recursive backtracker
+function generateMaze(cols, rows) {
+  const grid = [];
+  for (let y = 0; y < rows * 2 + 1; y++) {
+    grid[y] = [];
+    for (let x = 0; x < cols * 2 + 1; x++) {
+      grid[y][x] = 1; // wall by default
+    }
+  }
+
+  // Carve cells
+  for (let r = 0; r < rows; r++) {
+    for (let c = 0; c < cols; c++) {
+      grid[r * 2 + 1][c * 2 + 1] = 0;
+    }
+  }
+
+  const visited = new Set();
+  const stack = [[0, 0]];
+  visited.add('0,0');
+
+  while (stack.length > 0) {
+    const [cr, cc] = stack[stack.length - 1];
+    const neighbors = [];
+    const dirs = [[0, 1], [0, -1], [1, 0], [-1, 0]];
+
+    for (const [dr, dc] of dirs) {
+      const nr = cr + dr;
+      const nc = cc + dc;
+      if (nr >= 0 && nr < rows && nc >= 0 && nc < cols && !visited.has(`${nr},${nc}`)) {
+        neighbors.push([nr, nc, dr, dc]);
+      }
+    }
+
+    if (neighbors.length > 0) {
+      const idx = Math.floor(Math.random() * neighbors.length);
+      const [nr, nc, dr, dc] = neighbors[idx];
+      // Remove wall between cells
+      grid[cr * 2 + 1 + dr][cc * 2 + 1 + dc] = 0;
+      visited.add(`${nr},${nc}`);
+      stack.push([nr, nc]);
+    } else {
+      stack.pop();
+    }
+  }
+
+  return grid;
+}
+
+// ============================================================
+// STAGE 9 — FINAL EMAIL COMPOSER
+// ============================================================
+function showFinalEmail() {
+  updateHeaderStatus(CONFIG.toneMessages[7]);
+  setGlitchLevel(5);
+
+  const content = $('#content');
+  content.innerHTML = `
+    <div class="composer">
+      <div class="composer-header">
+        <span>Nouveau message — Vérification finale</span>
+        <span style="opacity:0.6;font-size:12px">Étape 7/7</span>
+      </div>
+      <div class="composer-field">
+        <label>Destinataire</label>
+        <input type="text" value="verification@mailbox-secure.fr" readonly style="opacity:0.6" />
+      </div>
+      <div class="composer-field">
+        <label>Objet</label>
+        <input type="text" value="Vérification d'identité — Phrase secrète" readonly style="opacity:0.6" />
+      </div>
+      <div class="composer-instruction">
+        📝 Veuillez saisir la phrase complète formée par les <strong>${CONFIG.secretWords.length} mots</strong>
+        que vous avez reçus durant la vérification.<br>
+        <em>Séparez les mots par des espaces. Pas de majuscules. Pas de ponctuation.</em>
+      </div>
+      <div class="composer-body">
+        <textarea id="final-message" placeholder="Tapez votre phrase ici..."></textarea>
+      </div>
+      <div class="composer-toolbar">
+        <button class="btn btn-primary" id="send-btn">📨 Envoyer</button>
+        <span style="margin-left:auto;font-size:12px;color:var(--text-secondary)" id="composer-status"></span>
+      </div>
+    </div>
+  `;
+
+  const textarea = $('#final-message');
+  const sendBtn = $('#send-btn');
+  const status = $('#composer-status');
+
+  sendBtn.addEventListener('click', () => {
+    const input = textarea.value.trim().toLowerCase();
+
+    if (input === CONFIG.secretSentence) {
+      showEnding(true);
+    } else {
+      state.failAttempts++;
+      status.style.color = 'var(--danger)';
+
+      if (state.failAttempts === 1) {
+        status.textContent = 'Phrase incorrecte. Réessayez.';
+        textarea.classList.add('shake');
+        setTimeout(() => textarea.classList.remove('shake'), 500);
+      } else if (state.failAttempts === 2) {
+        status.textContent = 'Toujours incorrect. Avez-vous retenu les mots ?';
+        textarea.classList.add('shake');
+        setTimeout(() => textarea.classList.remove('shake'), 500);
+      } else {
+        showEnding(false);
+      }
+    }
+  });
+
+  textarea.focus();
+}
+
+// ============================================================
+// STAGE 10 — ENDINGS
+// ============================================================
+function showEnding(success) {
+  setGlitchLevel(0);
+  document.body.className = '';
+
+  const screen = document.createElement('div');
+  screen.className = `ending-screen ${success ? 'ending-success' : 'ending-fail'}`;
+
+  if (success) {
+    screen.innerHTML = `
+      <div class="ending-content">
+        <div class="ending-icon">🟢</div>
+        <h1>Vérification réussie.</h1>
+        <p>Vous êtes humain. Probablement.</p>
+        <div class="ending-sentence">« ${CONFIG.secretSentence} »</div>
+        <p style="margin-top:24px;opacity:0.4;font-size:13px">
+          Mots collectés : ${state.collectedWords.join(' · ')}<br>
+          Temps de vérification : ${getElapsedTime()}
+        </p>
+      </div>
+    `;
+  } else {
+    screen.innerHTML = `
+      <div class="ending-content">
+        <div class="ending-icon">🔴</div>
+        <h1>Échec de la vérification.</h1>
+        <p>Vous êtes un robot.<br>Ou peut-être que le système l'est.</p>
+        <p style="margin-top:16px;opacity:0.5;font-size:14px">
+          La phrase était :<br>
+          <strong style="color:var(--warning)">« ${CONFIG.secretSentence} »</strong>
+        </p>
+        <p style="margin-top:24px">
+          <button class="btn btn-danger" onclick="location.reload()">Recommencer</button>
+        </p>
+      </div>
+    `;
+  }
+
+  document.body.appendChild(screen);
+}
+
+// ============================================================
+// UTILITIES
+// ============================================================
+function createModal(title, subtitle, wide = false, extraClass = '') {
+  const overlay = document.createElement('div');
+  overlay.className = 'modal-overlay';
+
+  const classes = ['modal', wide ? 'wide' : '', extraClass].filter(Boolean).join(' ');
+
+  overlay.innerHTML = `
+    <div class="${classes}">
+      <div class="modal-title">🔒 ${title}</div>
+      <div class="modal-subtitle">${subtitle}</div>
+      <div class="modal-body"></div>
+    </div>
+  `;
+
+  document.body.appendChild(overlay);
+  return overlay;
+}
+
+function updateHeaderStatus(text) {
+  const el = document.getElementById('header-status');
+  if (el) {
+    el.style.color = state.currentStage > 5 ? 'var(--danger)' : 'var(--text-secondary)';
+    el.textContent = text;
+  }
+}
+
+const startTime = Date.now();
+function getElapsedTime() {
+  const diff = Math.floor((Date.now() - startTime) / 1000);
+  const mins = Math.floor(diff / 60);
+  const secs = diff % 60;
+  return `${mins}m ${secs}s`;
+}
+
+// ============================================================
+// INITIALIZATION
+// ============================================================
+function init() {
+  renderApp();
+  renderInbox();
+}
+
+document.addEventListener('DOMContentLoaded', init);
+</script>
+</body>
+</html>
