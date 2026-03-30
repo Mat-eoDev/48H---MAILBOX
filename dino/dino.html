@@ -1,0 +1,126 @@
+﻿<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Pas d’internet</title>
+<link rel="stylesheet" href="style.css">
+</head>
+<body class="loading">
+
+<div id="chrome-bar">
+  <div id="chrome-window">
+    <span class="win-close win-btn"></span>
+    <span class="win-min win-btn"></span>
+    <span class="win-max win-btn"></span>
+  </div>
+  <div class="tab">
+    <span class="favicon"></span>
+    <span>Pas d’internet</span>
+    <span class="close">×</span>
+  </div>
+</div>
+<!-- chrome toolbar removed -->
+
+<div id="loading-screen">
+  <div id="loading-top">
+    <div id="yt-player"></div>
+    <div id="yt-sidebar">
+      <div class="yt-card"><div class="yt-thumb"></div><div class="yt-lines"><div class="yt-line"></div><div class="yt-line" style="width:70%"></div></div></div>
+      <div class="yt-card"><div class="yt-thumb"></div><div class="yt-lines"><div class="yt-line"></div><div class="yt-line" style="width:60%"></div></div></div>
+      <div class="yt-card"><div class="yt-thumb"></div><div class="yt-lines"><div class="yt-line"></div><div class="yt-line" style="width:65%"></div></div></div>
+      <div class="yt-card"><div class="yt-thumb"></div><div class="yt-lines"><div class="yt-line"></div><div class="yt-line" style="width:55%"></div></div></div>
+    </div>
+  </div>
+  <div id="yt-titlebar">
+    <div id="yt-title"></div>
+    <div id="yt-meta"></div>
+  </div>
+  <div id="loading-bar-wrap"><div id="loading-bar"></div></div>
+  <div id="loading-text">Chargement de YouTube…</div>
+</div>
+
+<div id="error-wrap">
+  <p class="err-title">Pas de connexion Internet</p>
+  <p class="err-sub">Vérifie tes câbles réseau, modem et routeur.</p>
+  <p class="err-sub">Essaie de te reconnecter au Wi‑Fi.</p>
+  <p class="err-code">ERR_INTERNET_DISCONNECTED</p>
+  <p id="hint">Appuie sur <strong>Espace</strong> pour courir quand même.</p>
+</div>
+
+<div id="game-area">
+  <div id="score-wrap"><span id="score-display">HI 00000&nbsp;&nbsp;00000</span></div>
+  <canvas id="gameCanvas" width="600" height="150" tabindex="0"></canvas>
+  <div id="jump-toast">le château t’attend...</div>
+
+  <!-- Controls overlay sits INSIDE game-area so it covers only the canvas -->
+  <div id="controls-overlay">
+    <div id="co-title">&#8212; temple run &#8212;</div>
+    <div class="co-key-row"><span class="co-key">&#8593; / W / Z</span><span class="co-desc">lane haut</span></div>
+    <div class="co-key-row"><span class="co-key">&#8595; / S</span><span class="co-desc">lane bas</span></div>
+    <div id="co-countdown">5</div>
+    <div id="co-go"></div>
+  </div>
+</div>
+
+<!-- Pause overlay -->
+<div id="pause-overlay">
+  <div id="pause-line1">&#8212; terminus &#8212;</div>
+  <div id="pause-line2">c’est parti<br>trop loin là</div>
+  <div id="pause-sub">reconnexion en cours... garde ton souffle.</div>
+</div>
+
+<!-- Boss approach overlay -->
+<div id="boss-overlay">
+  <div id="boss-title">&#8212; au bout du tunnel &#8212;</div>
+  <div id="boss-icon" class="flowey-loom">&#x273F;</div>
+  <div id="boss-text">UNE PRÉSENCE APPROCHE...</div>
+</div>
+
+<!-- UNDERTALE battle screen -->
+<div id="undertale-screen">
+  <div class="glitch-veil"></div>
+  <div id="ut-hud-glitch"></div>
+  <div id="ut-enemy-name">* FLOWEY the flower</div>
+  <div id="ut-enemy-hp-row">
+    <span id="ut-enemy-hp-label">HP</span>
+    <div id="ut-enemy-hp-outer"><div id="ut-enemy-hp-inner"></div></div>
+    <span id="ut-enemy-hp-val">30 / 30</span>
+  </div>
+  <div id="ut-flowey">&#x273F;</div>
+  <div id="ut-box"><div id="ut-text"></div></div>
+  <div id="ut-spare-fx"></div>
+  <div id="ut-player-hp-row">
+    <span id="ut-player-label">Player HP</span>
+    <div id="ut-player-hp-outer"><div id="ut-player-hp-inner"></div></div>
+    <span id="ut-player-hp-val">20 / 20</span>
+  </div>
+  <div id="ut-menu">
+    <button class="ut-btn" id="btn-fight">&#9876; FIGHT</button>
+    <button class="ut-btn" id="btn-act">&#9733; ACT</button>
+    <button class="ut-btn" id="btn-spare">&#9825; ÉPARGNER</button>
+  </div>
+</div>
+
+<!-- Death screen -->
+<div id="death-screen">
+  <div id="ds-flowey">&#x273F;</div>
+  <div id="ds-box">
+    <div id="ds-text"></div>
+    <div id="ds-word-wrap"><span id="ds-word"></span></div>
+  </div>
+  <div id="ds-continue">* appuie sur ESPACE pour continuer</div>
+</div>
+
+<!-- Ending screen -->
+<div id="ending-screen">
+  <div id="es-title">* MAÎTRE DU JEU *</div>
+  <div id="es-msg"></div>
+  <div id="es-sub">* fin de partie</div>
+</div>
+
+<script src="main.js"></script>
+</body>
+</html>
+
+
