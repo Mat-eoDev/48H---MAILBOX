@@ -1,0 +1,112 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="description" content="Morpius, le morpion solo où les pièces glissent, poussent et sabotent tes plans.">
+  <title>Morpius</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <div class="page-noise" aria-hidden="true"></div>
+
+  <main class="app-shell">
+    <section class="game-card" aria-labelledby="game-title">
+      <header class="hero">
+        <div class="interface-bar" aria-hidden="true">
+          <span class="mail-chip">Courrier piégé</span>
+          <span class="mail-route">Boîte de réception / Message du game master / Dossier Morpius</span>
+        </div>
+
+        <div class="hero-heading">
+          <h1 id="game-title">Morpius</h1>
+          <span class="heading-dash">—</span>
+          <p id="game-tagline" class="tagline">Le morpion où même tes propres pièces te détestent.</p>
+        </div>
+
+        <section class="objective-panel" aria-label="Objectif de l'expérience">
+          <div class="objective-copy">
+            <span id="goal-label" class="goal-label">Objectif annoncé</span>
+            <p id="goal-text" class="goal-text">Une victoire suffit pour repartir avec le code.</p>
+          </div>
+
+          <div id="progress-strip" class="progress-strip is-concealed" aria-live="polite">
+            <span id="progress-count" class="progress-count">0 / 3 victoires</span>
+            <div class="win-track" aria-hidden="true">
+              <span class="win-dot" data-win-dot="0"></span>
+              <span class="win-dot" data-win-dot="1"></span>
+              <span class="win-dot" data-win-dot="2"></span>
+            </div>
+          </div>
+        </section>
+      </header>
+
+      <section class="play-area">
+        <section class="board-panel" aria-labelledby="board-panel-title">
+          <div class="panel-head">
+            <p class="panel-kicker">Pièce jointe du message</p>
+            <h2 id="board-panel-title">Plateau instable 3x3</h2>
+          </div>
+
+          <div id="board-frame" class="board-frame">
+            <div id="board" class="board" role="grid" aria-label="Plateau Morpius" aria-busy="false">
+              <button class="cell" type="button" data-index="0" aria-label="Case 1, vide"></button>
+              <button class="cell" type="button" data-index="1" aria-label="Case 2, vide"></button>
+              <button class="cell" type="button" data-index="2" aria-label="Case 3, vide"></button>
+              <button class="cell" type="button" data-index="3" aria-label="Case 4, vide"></button>
+              <button class="cell" type="button" data-index="4" aria-label="Case 5, vide"></button>
+              <button class="cell" type="button" data-index="5" aria-label="Case 6, vide"></button>
+              <button class="cell" type="button" data-index="6" aria-label="Case 7, vide"></button>
+              <button class="cell" type="button" data-index="7" aria-label="Case 8, vide"></button>
+              <button class="cell" type="button" data-index="8" aria-label="Case 9, vide"></button>
+            </div>
+          </div>
+        </section>
+
+        <aside class="sidebar-stack">
+          <section class="status-panel" aria-label="Statut de la partie">
+            <div class="panel-head panel-head--compact">
+              <p class="panel-kicker">Suivi de manche</p>
+              <h2>Statut</h2>
+            </div>
+
+            <div class="status-top">
+              <span class="status-kicker">Tour actif</span>
+              <span id="turn-badge" class="turn-badge">À toi</span>
+            </div>
+
+            <p id="status-message" class="status-message" aria-live="polite">À toi de jouer.</p>
+          </section>
+
+          <aside class="rules-card" aria-labelledby="rules-title">
+            <div class="panel-head panel-head--compact">
+              <p class="panel-kicker">Consignes</p>
+              <h2 id="rules-title">Comment survivre</h2>
+            </div>
+
+            <ul class="rules-list">
+              <li>Pose un <strong>X</strong> sur une case vide avant que le plateau ne décide du reste.</li>
+              <li>Un pion peut déraper hors de la grille ou, plus rarement, se retourner contre toi.</li>
+              <li>La victoire n'est vérifiée qu'après stabilisation complète du plateau.</li>
+            </ul>
+
+            <p class="rules-note">Morpius adore transformer un bon réflexe en preuve écrite contre toi.</p>
+          </aside>
+        </aside>
+      </section>
+
+    </section>
+  </main>
+
+  <div id="modal-backdrop" class="modal-backdrop" hidden>
+    <section class="modal-card" role="dialog" aria-modal="true" aria-labelledby="modal-title" aria-describedby="modal-body">
+      <p id="modal-kicker" class="modal-kicker">Mauvaise nouvelle</p>
+      <h2 id="modal-title" class="modal-title">Encore un effort.</h2>
+      <p id="modal-body" class="modal-body">Les règles viennent de bouger, et pas dans ton sens.</p>
+      <button id="modal-action" class="modal-action" type="button" hidden>Continuer</button>
+    </section>
+  </div>
+
+  <script src="script.js" defer></script>
+</body>
+</html>
