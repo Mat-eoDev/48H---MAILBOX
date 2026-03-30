@@ -99,6 +99,12 @@ document.addEventListener("DOMContentLoaded", () => {
   hydrateStaticCopy();
   bindEvents();
   resetGame();
+  requestAnimationFrame(() => {
+    requestAnimationFrame(() => {
+      document.body.classList.add("is-loaded");
+      startBootSequence();
+    });
+  });
 });
 
 function cacheDom() {
@@ -120,6 +126,7 @@ function cacheDom() {
   dom.modalTitle = document.getElementById("modal-title");
   dom.modalBody = document.getElementById("modal-body");
   dom.modalAction = document.getElementById("modal-action");
+  dom.bootSequence = document.getElementById("boot-sequence");
 }
 
 function hydrateStaticCopy() {
@@ -141,6 +148,24 @@ function resetGame() {
   clearBoardEffects();
   hideModal();
   render();
+}
+
+function startBootSequence() {
+  if (!dom.bootSequence) {
+    return;
+  }
+
+  const reducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+  const exitDelay = reducedMotion ? 160 : 1160;
+  const hideDelay = reducedMotion ? 220 : 1620;
+
+  window.setTimeout(() => {
+    dom.bootSequence.classList.add("is-hidden");
+  }, exitDelay);
+
+  window.setTimeout(() => {
+    dom.bootSequence.hidden = true;
+  }, hideDelay);
 }
 
 async function handleCellClick(event) {

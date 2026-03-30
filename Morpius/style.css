@@ -70,6 +70,35 @@ body {
   overflow-x: hidden;
 }
 
+body::before,
+body::after {
+  content: "";
+  position: fixed;
+  inset: auto;
+  pointer-events: none;
+  z-index: 0;
+  filter: blur(18px);
+  opacity: 0.32;
+}
+
+body::before {
+  top: 8%;
+  left: -6%;
+  width: 30rem;
+  height: 30rem;
+  background: radial-gradient(circle, rgba(135, 242, 204, 0.12), transparent 68%);
+  animation: drift-halo-a 16s ease-in-out infinite alternate;
+}
+
+body::after {
+  right: -8%;
+  bottom: 6%;
+  width: 34rem;
+  height: 34rem;
+  background: radial-gradient(circle, rgba(255, 147, 170, 0.12), transparent 70%);
+  animation: drift-halo-b 18s ease-in-out infinite alternate;
+}
+
 button,
 input,
 textarea,
@@ -87,6 +116,7 @@ select {
     linear-gradient(90deg, rgba(255, 255, 255, 0.016) 1px, transparent 1px);
   background-size: 26px 26px;
   mask-image: radial-gradient(circle at center, black 58%, transparent 100%);
+  animation: noise-drift 14s linear infinite;
 }
 
 .app-shell {
@@ -96,6 +126,19 @@ select {
   display: grid;
   place-items: center;
   padding-block: var(--shell-pad);
+  opacity: 0.22;
+  filter: blur(10px);
+  transform: scale(0.985);
+  transition:
+    opacity 520ms var(--ease-out),
+    filter 520ms var(--ease-out),
+    transform 520ms var(--ease-out);
+}
+
+body.is-loaded .app-shell {
+  opacity: 1;
+  filter: none;
+  transform: scale(1);
 }
 
 .game-card {
@@ -112,6 +155,84 @@ select {
   box-shadow: var(--shadow);
   backdrop-filter: blur(18px);
   overflow: hidden;
+  animation: card-breathe 7s ease-in-out infinite;
+}
+
+.boot-sequence {
+  position: fixed;
+  inset: 0;
+  z-index: 80;
+  display: grid;
+  place-items: center;
+  padding: 1rem;
+  background:
+    radial-gradient(circle at center, rgba(12, 24, 34, 0.78), rgba(4, 9, 14, 0.96)),
+    rgba(4, 9, 14, 0.96);
+  backdrop-filter: blur(8px);
+  will-change: opacity;
+  transition:
+    opacity 420ms ease,
+    visibility 420ms ease;
+}
+
+.boot-sequence.is-hidden {
+  opacity: 0;
+  visibility: hidden;
+  pointer-events: none;
+}
+
+.boot-panel {
+  width: min(100%, 30rem);
+  display: grid;
+  gap: 0.85rem;
+  padding: 1.2rem 1.25rem;
+  border-radius: 1.25rem;
+  border: 1px solid rgba(173, 211, 233, 0.12);
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.05), rgba(255, 255, 255, 0.01)),
+    rgba(10, 19, 28, 0.96);
+  box-shadow: 0 24px 70px rgba(0, 0, 0, 0.45);
+}
+
+.boot-kicker,
+.boot-line {
+  margin: 0;
+  font-family: var(--font-mono);
+}
+
+.boot-kicker {
+  color: var(--warn);
+  font-size: 0.78rem;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+}
+
+.boot-line {
+  color: var(--text);
+  font-size: 0.94rem;
+  line-height: 1.5;
+}
+
+.boot-line--muted {
+  color: var(--muted);
+}
+
+.boot-bar {
+  position: relative;
+  height: 0.72rem;
+  overflow: hidden;
+  border-radius: 999px;
+  border: 1px solid rgba(135, 242, 204, 0.14);
+  background: rgba(255, 255, 255, 0.05);
+}
+
+.boot-bar__fill {
+  display: block;
+  width: 100%;
+  height: 100%;
+  transform-origin: left center;
+  background: linear-gradient(90deg, rgba(135, 242, 204, 0.92), rgba(246, 217, 125, 0.82));
+  animation: boot-fill 1.2s var(--ease-out) forwards;
 }
 
 .game-card::before,
@@ -128,6 +249,7 @@ select {
   top: -10rem;
   left: -8rem;
   background: radial-gradient(circle, rgba(135, 242, 204, 0.1), transparent 72%);
+  animation: orb-shift-a 14s ease-in-out infinite alternate;
 }
 
 .game-card::after {
@@ -136,6 +258,7 @@ select {
   right: -10rem;
   bottom: -14rem;
   background: radial-gradient(circle, rgba(255, 147, 170, 0.1), transparent 74%);
+  animation: orb-shift-b 17s ease-in-out infinite alternate;
 }
 
 .hero,
@@ -150,16 +273,64 @@ select {
   gap: var(--space-3);
 }
 
+.hero,
+.objective-panel,
+.board-panel,
+.sidebar-stack {
+  opacity: 0;
+  transform: translateY(18px);
+  transition:
+    opacity 520ms var(--ease-out),
+    transform 520ms var(--ease-out);
+}
+
+body.is-loaded .hero,
+body.is-loaded .objective-panel,
+body.is-loaded .board-panel,
+body.is-loaded .sidebar-stack {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+body.is-loaded .hero {
+  transition-delay: 40ms;
+}
+
+body.is-loaded .objective-panel {
+  transition-delay: 90ms;
+}
+
+body.is-loaded .board-panel {
+  transition-delay: 140ms;
+}
+
+body.is-loaded .sidebar-stack {
+  transition-delay: 190ms;
+}
+
 .interface-bar {
+  position: relative;
   display: flex;
   align-items: center;
   gap: var(--space-2);
   flex-wrap: wrap;
+  min-width: 0;
   min-height: 2.4rem;
   padding: 0.7rem 0.9rem;
   border: 1px solid rgba(173, 211, 233, 0.12);
   border-radius: 999px;
   background: rgba(10, 19, 27, 0.78);
+  overflow: hidden;
+}
+
+.interface-bar::after {
+  content: "";
+  position: absolute;
+  inset: 0 auto 0 -32%;
+  width: 28%;
+  background: linear-gradient(90deg, transparent, rgba(135, 242, 204, 0.12), transparent);
+  transform: skewX(-18deg);
+  animation: signal-scan 5.8s linear infinite;
 }
 
 .mail-chip,
@@ -167,11 +338,14 @@ select {
   font-family: var(--font-mono);
   font-size: 0.76rem;
   letter-spacing: 0.08em;
+  line-height: 1.35;
+  min-width: 0;
 }
 
 .mail-chip {
   display: inline-flex;
   align-items: center;
+  flex: 0 0 auto;
   padding: 0.34rem 0.62rem;
   border-radius: 999px;
   border: 1px solid rgba(135, 242, 204, 0.18);
@@ -181,8 +355,10 @@ select {
 }
 
 .mail-route {
+  flex: 1 1 16rem;
   color: var(--muted);
   text-transform: uppercase;
+  overflow-wrap: anywhere;
 }
 
 .hero-heading {
@@ -226,6 +402,7 @@ select {
     linear-gradient(180deg, rgba(255, 255, 255, 0.04), rgba(255, 255, 255, 0.01)),
     var(--panel-strong);
   box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.04);
+  animation: panel-breathe 8s ease-in-out infinite;
 }
 
 .objective-panel {
@@ -361,6 +538,7 @@ select {
     radial-gradient(circle at 12% 18%, rgba(135, 242, 204, 0.09), transparent 26%),
     radial-gradient(circle at 88% 84%, rgba(255, 147, 170, 0.08), transparent 30%);
   pointer-events: none;
+  animation: board-scan 9s ease-in-out infinite;
 }
 
 .board-frame.is-locked::after {
@@ -616,6 +794,7 @@ select {
   padding: 1.25rem;
   background: rgba(3, 7, 12, 0.68);
   backdrop-filter: blur(10px);
+  animation: overlay-fade 180ms ease;
 }
 
 .modal-card {
@@ -700,6 +879,121 @@ select {
   }
 }
 
+@keyframes boot-fill {
+  0% {
+    transform: scaleX(0.08);
+    opacity: 0.5;
+  }
+  100% {
+    transform: scaleX(1);
+    opacity: 1;
+  }
+}
+
+@keyframes drift-halo-a {
+  0% {
+    transform: translate3d(0, 0, 0) scale(1);
+  }
+  100% {
+    transform: translate3d(3.5rem, 1.5rem, 0) scale(1.08);
+  }
+}
+
+@keyframes drift-halo-b {
+  0% {
+    transform: translate3d(0, 0, 0) scale(1);
+  }
+  100% {
+    transform: translate3d(-3rem, -1.8rem, 0) scale(1.06);
+  }
+}
+
+@keyframes noise-drift {
+  0% {
+    transform: translate3d(0, 0, 0);
+  }
+  100% {
+    transform: translate3d(12px, 8px, 0);
+  }
+}
+
+@keyframes card-breathe {
+  0%,
+  100% {
+    box-shadow: var(--shadow);
+  }
+  50% {
+    box-shadow: 0 30px 76px rgba(0, 0, 0, 0.42);
+  }
+}
+
+@keyframes orb-shift-a {
+  0% {
+    transform: translate3d(0, 0, 0);
+  }
+  100% {
+    transform: translate3d(1.2rem, 0.9rem, 0) scale(1.04);
+  }
+}
+
+@keyframes orb-shift-b {
+  0% {
+    transform: translate3d(0, 0, 0);
+  }
+  100% {
+    transform: translate3d(-1rem, -1.1rem, 0) scale(1.05);
+  }
+}
+
+@keyframes signal-scan {
+  0% {
+    transform: translateX(0) skewX(-18deg);
+    opacity: 0;
+  }
+  8% {
+    opacity: 1;
+  }
+  30% {
+    opacity: 0.9;
+  }
+  52%,
+  100% {
+    transform: translateX(460%) skewX(-18deg);
+    opacity: 0;
+  }
+}
+
+@keyframes panel-breathe {
+  0%,
+  100% {
+    border-color: var(--line);
+  }
+  50% {
+    border-color: rgba(173, 211, 233, 0.22);
+  }
+}
+
+@keyframes board-scan {
+  0%,
+  100% {
+    opacity: 0.82;
+    transform: translateY(0);
+  }
+  50% {
+    opacity: 1;
+    transform: translateY(-4px);
+  }
+}
+
+@keyframes overlay-fade {
+  0% {
+    opacity: 0;
+  }
+  100% {
+    opacity: 1;
+  }
+}
+
 @keyframes board-nudge {
   0%,
   100% {
@@ -778,6 +1072,10 @@ select {
     align-items: flex-start;
   }
 
+  .interface-bar {
+    border-radius: 1.2rem;
+  }
+
   .sidebar-stack {
     grid-template-columns: 1fr;
   }
@@ -821,6 +1119,22 @@ select {
   .status-kicker,
   .modal-kicker {
     letter-spacing: 0.08em;
+  }
+
+  .interface-bar {
+    gap: 0.45rem 0.6rem;
+    padding: 0.65rem 0.8rem;
+  }
+
+  .mail-chip {
+    padding: 0.28rem 0.54rem;
+    font-size: 0.68rem;
+  }
+
+  .mail-route {
+    flex-basis: 100%;
+    font-size: 0.66rem;
+    letter-spacing: 0.05em;
   }
 }
 
@@ -877,5 +1191,13 @@ select {
     animation-iteration-count: 1 !important;
     transition-duration: 1ms !important;
     scroll-behavior: auto !important;
+  }
+
+  .hero,
+  .objective-panel,
+  .board-panel,
+  .sidebar-stack {
+    opacity: 1 !important;
+    transform: none !important;
   }
 }
