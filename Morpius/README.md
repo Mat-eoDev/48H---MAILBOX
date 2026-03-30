@@ -92,9 +92,3 @@ Stack utilisée :
 - HTML
 - CSS
 - JavaScript vanilla
-
-## Intention de design
-
-Morpius doit ressembler à une pièce jointe propre, lisible, presque sérieuse.
-Le fond et l'interface doivent inspirer une communication piégée.
-Le gameplay, lui, doit rester mesquin, instable et légèrement malhonnête.
