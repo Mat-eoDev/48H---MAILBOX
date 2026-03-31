@@ -2,15 +2,14 @@ const pCanvas = document.getElementById('particle-canvas');
 const pCtx = pCanvas.getContext('2d');
 let totalFails = 0;
 let particles = [];
+
 const style = document.createElement('style');
 style.textContent = `
   @keyframes blink-logic {
     0%, 49% { opacity: 1; pointer-events: auto; }
     50%, 100% { opacity: 0; pointer-events: none; }
   }
-  .flicker-smooth {
-    animation: blink-logic 1.2s step-end infinite;
-  }
+  .flicker-smooth { animation: blink-logic 1.2s step-end infinite; }
 `;
 document.head.appendChild(style);
 
@@ -18,22 +17,18 @@ const skipStyle = document.createElement('style');
 skipStyle.textContent = `
   .skip-overlay {
     position: fixed; top: 0; left: 0; width: 100%; height: 100%;
-    background: rgba(0, 0, 0, 0.8); z-index: 90;
+    background: rgba(0,0,0,0.8); z-index: 90;
     pointer-events: none; transition: opacity 1s ease;
   }
 `;
 document.head.appendChild(skipStyle);
 
 // ── AUDIO ──
-// Tous les fichiers audio sont chargés ici.
-// On utilise stopAll() avant chaque nouveau son "important" pour éviter les collisions.
-
 const A = {
-    intro:       new Audio('audio/intro.mp3'),
-    gameIntro:   new Audio('audio/buttongame intro.mp3'),
-    winscreen:   new Audio('audio/winscreen.mp3'),
+    intro:     new Audio('audio/intro.mp3'),
+    gameIntro: new Audio('audio/buttongame intro.mp3'),
+    winscreen: new Audio('audio/winscreen.mp3'),
 
-    // Son joué à l'entrée de chaque stage (index 0 à 7)
     stageSound: [
         new Audio('audio/1stbutton.mp3'),
         new Audio('audio/2ndbutton.mp3'),
@@ -45,7 +40,6 @@ const A = {
         new Audio('audio/8button.mp3'),
     ],
 
-    // Son joué quand on gagne un stage (index 0 à 7)
     stageWin: [
         new Audio('audio/1stbutton_win.mp3'),
         new Audio('audio/2ndbutton_win.mp3'),
@@ -57,26 +51,24 @@ const A = {
         new Audio('audio/8button_win.mp3'),
     ],
 
-    // Sons de fail spécifiques (par situation, pas par index de stage)
     fail: {
-        s0_red:         new Audio('audio/1stbutton_fail.mp3'),   // Stage 0 : a cliqué un bouton (pas vert)
-        s0_blue:        new Audio('audio/1stbutton_fail2.mp3'),  // Stage 0 : variante fail2
-        s1_dog:         new Audio('audio/2ndbutton_faildog.mp3'),
-        s1_cat:         new Audio('audio/2ndbutton_failcat.mp3'),
-        s1_fish:        new Audio('audio/2ndbutton_failfish.mp3'),
-        s2:             new Audio('audio/3button_fail.mp3'),
-        s3_red:         new Audio('audio/4button_failred.mp3'),   // Stage 3 : a appuyé rouge
-        s3_timer:       new Audio('audio/4button_failtimer.mp3'), // Stage 3 : timeout
-        s4:             new Audio('audio/5button_fail.mp3'),
-        s5:             new Audio('audio/6button_fail.mp3'),
-        s6:             new Audio('audio/7button_fail.mp3'),
-        s7_twice:       new Audio('audio/8button_failfortwice.mp3'), // Stage 7 : cliqué OK deux fois
-        s7_timer:       new Audio('audio/8button_failtimer.mp3'),    // Stage 7 : timeout
-        s7_middle:      new Audio('audio/8button_middle.mp3'),       // Stage 7 : après 1er clic OK (faux win)
+        s0_red:    new Audio('audio/1stbutton_fail.mp3'),
+        s0_blue:   new Audio('audio/1stbutton_fail2.mp3'),
+        s1_dog:    new Audio('audio/2ndbutton_faildog.mp3'),
+        s1_cat:    new Audio('audio/2ndbutton_failcat.mp3'),
+        s1_fish:   new Audio('audio/2ndbutton_failfish.mp3'),
+        s2:        new Audio('audio/3button_fail.mp3'),
+        s3_red:    new Audio('audio/4button_failred.mp3'),
+        s3_timer:  new Audio('audio/4button_failtimer.mp3'),
+        s4:        new Audio('audio/5button_fail.mp3'),
+        s5:        new Audio('audio/6button_fail.mp3'),
+        s6:        new Audio('audio/7button_fail.mp3'),
+        s7_twice:  new Audio('audio/8button_failfortwice.mp3'),
+        s7_timer:  new Audio('audio/8button_failtimer.mp3'),
+        s7_middle: new Audio('audio/8button_middle.mp3'),
     }
 };
 
-// Liste de TOUS les objets Audio pour pouvoir tous les stopper d'un coup
 const ALL_SOUNDS = [
     A.intro, A.gameIntro, A.winscreen,
     ...A.stageSound,
@@ -84,19 +76,15 @@ const ALL_SOUNDS = [
     ...Object.values(A.fail)
 ];
 
-// Stoppe tous les sons en cours (évite les collisions)
 function stopAll() {
-    ALL_SOUNDS.forEach(snd => {
-        snd.pause();
-        snd.currentTime = 0;
-    });
+    ALL_SOUNDS.forEach(snd => { snd.pause(); snd.currentTime = 0; });
 }
 
-// Joue un son (avec reset pour pouvoir le rejouer)
 function play(snd) {
     if (!snd) return;
+    stopAll();
     snd.currentTime = 0;
-    snd.play().catch(() => {}); // catch: autoplay policy des navigateurs
+    snd.play().catch(() => {});
 }
 
 // ── PARTICLES ──
@@ -106,6 +94,7 @@ function resizeCanvas() {
 }
 resizeCanvas();
 window.addEventListener('resize', resizeCanvas);
+
 for (let i = 0; i < 55; i++) {
     particles.push({
         x: Math.random() * window.innerWidth,
@@ -116,6 +105,7 @@ for (let i = 0; i < 55; i++) {
         a: Math.random() * 0.4 + 0.05
     });
 }
+
 function animParticles() {
     pCtx.clearRect(0, 0, pCanvas.width, pCanvas.height);
     particles.forEach(p => {
@@ -143,6 +133,24 @@ let locked = false;
 let movingInterval = null;
 
 const CIRCUMFERENCE = 2 * Math.PI * 33;
+
+// ── INTRO ──
+// Appelé quand le joueur clique PLAY sur l'écran d'intro
+function startFromIntro() {
+    const introScreen = document.getElementById('intro-screen');
+    
+    // 1. Jouer le son immédiatement
+    play(A.gameIntro);
+    
+    // 2. Lancer l'animation de fondu
+    introScreen.classList.add('fade-out');
+
+    // 3. Attendre 20 secondes (20000 ms) avant de lancer le jeu
+    setTimeout(() => {
+        introScreen.style.display = 'none';
+        initGame();
+    }, 9000);
+}
 
 // ── STAGES ──
 const STAGES = [
@@ -219,7 +227,6 @@ const STAGES = [
         timeLimit: 10,
         setup(area) {
             addBtn(area, "RED", "btn-red", () => { play(A.fail.s3_red); failStage("YOU PRESSED IT! I LITERALLY SAID NO!", "Unbelievable."); });
-
             const gbtn = document.createElement('button');
             gbtn.className = 'g-btn btn-green flicker-smooth';
             gbtn.textContent = 'SAFE BUTTON';
@@ -260,16 +267,16 @@ const STAGES = [
 
             for (let i = 0; i < 4; i++) {
                 const c = document.createElement('div');
-                c.style.cssText = `width:50px; height:50px; border-radius:50%; background:hsl(${i * 70}, 70%, 50%); cursor:pointer;`;
+                c.style.cssText = `width:50px;height:50px;border-radius:50%;background:hsl(${i*70},70%,50%);cursor:pointer;`;
                 c.onclick = () => onCircleClick(c);
                 area.appendChild(c);
             }
 
             const hiddenCircle = document.createElement('div');
             hiddenCircle.style.cssText = `
-                position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%);
-                width: 60px; height: 60px; border-radius: 50%; background: purple;
-                opacity: 0.1; cursor: pointer; z-index: 9999;
+                position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);
+                width:60px;height:60px;border-radius:50%;background:purple;
+                opacity:0.1;cursor:pointer;z-index:9999;
             `;
             timerContainer.style.position = 'relative';
             timerContainer.appendChild(hiddenCircle);
@@ -277,8 +284,8 @@ const STAGES = [
             const arrow = document.createElement('div');
             arrow.textContent = "⬇️";
             arrow.style.cssText = `
-                position: absolute; top: -40px; left: 50%; transform: translateX(-50%);
-                font-size: 30px; display: none; z-index: 10000;
+                position:absolute;top:-40px;left:50%;transform:translateX(-50%);
+                font-size:30px;display:none;z-index:10000;
             `;
             timerContainer.appendChild(arrow);
 
@@ -286,10 +293,7 @@ const STAGES = [
                 if (parseInt(timerNum.textContent) <= 2) arrow.style.display = "block";
             }, 200);
 
-            hiddenCircle.onclick = (e) => {
-                e.stopPropagation();
-                onCircleClick(hiddenCircle);
-            };
+            hiddenCircle.onclick = (e) => { e.stopPropagation(); onCircleClick(hiddenCircle); };
 
             area._cleanup = () => {
                 clearInterval(checkTime);
@@ -384,7 +388,6 @@ const STAGES = [
             ok.onclick = () => {
                 fakeCount++;
                 if (fakeCount === 1) {
-                    // Son "middle" : faux win, le narrateur réagit
                     stopAll();
                     play(A.fail.s7_middle);
                     flashFeedback("WINNER! 🎉", 'fake');
@@ -439,8 +442,7 @@ function makeFakeImg(area, w, h, id, drawFn, label, onclick) {
 }
 
 function drawDog(ctx, w, h) {
-    ctx.fillStyle = '#1a1828';
-    ctx.fillRect(0, 0, w, h);
+    ctx.fillStyle = '#1a1828'; ctx.fillRect(0, 0, w, h);
     ctx.fillStyle = '#c9a96e';
     ctx.beginPath(); ctx.ellipse(w/2, h/2+8, 32, 22, 0, 0, Math.PI*2); ctx.fill();
     ctx.beginPath(); ctx.arc(w/2+10, h/2-20, 18, 0, Math.PI*2); ctx.fill();
@@ -460,9 +462,7 @@ function drawFish(ctx, w, h) {
     ctx.fillStyle = '#fff'; ctx.beginPath(); ctx.arc(w/2-28, h/2-4, 6, 0, Math.PI*2); ctx.fill();
     ctx.fillStyle = '#222'; ctx.beginPath(); ctx.arc(w/2-28, h/2-4, 3, 0, Math.PI*2); ctx.fill();
     ctx.strokeStyle = 'rgba(255,255,255,0.2)'; ctx.lineWidth = 1.5;
-    for (let i = 0; i < 3; i++) {
-        ctx.beginPath(); ctx.arc(w/2-5+i*14, h/2, 12, 0.3, Math.PI-0.3); ctx.stroke();
-    }
+    for (let i = 0; i < 3; i++) { ctx.beginPath(); ctx.arc(w/2-5+i*14, h/2, 12, 0.3, Math.PI-0.3); ctx.stroke(); }
 }
 
 function drawCat(ctx, w, h) {
@@ -535,9 +535,7 @@ function startTimer(secs, onEnd) {
     }, 1000);
 }
 
-function stopTimer() {
-    clearInterval(timerInterval);
-}
+function stopTimer() { clearInterval(timerInterval); }
 
 // ── WIN / FAIL ──
 function winStage(msg) {
@@ -545,11 +543,8 @@ function winStage(msg) {
     locked = true;
     stopTimer();
     if (STAGES[stage].onLeave) STAGES[stage].onLeave(document.getElementById('game-area'));
-
-    // Stoppe le son du stage en cours, joue le son de victoire
     stopAll();
     play(A.stageWin[stage]);
-
     flashFeedback("✅ CORRECT!", 'win');
     document.getElementById('narrator-text').textContent = "Huh… you got that one. Lucky.";
     const dots = document.querySelectorAll('.pdot');
@@ -588,58 +583,10 @@ function failStage(reason, trollLine) {
 }
 
 // ── FAIL NARRATOR LINES ──
-const FAIL_NARRATOR = [
-    [
-        "Oh my GOD. You panicked and pressed RANDOM buttons. Did you even READ?",
-        "There was NO green button. NONE. You just clicked around like a baby.",
-        "I said green. You pressed whatever. Are you okay up there?",
-    ],
-    [
-        "That's a DOG. A DOG! Have you never seen a cat before in your life?",
-        "You clicked a FISH. A FISH! Were you hoping for sushi? This is a CAT game!",
-        "You have eyes. USE them. That was clearly not a cat.",
-    ],
-    [
-        "It was RIGHT THERE and you MISSED it. My grandmother clicks faster.",
-        "Oh come ON. You just had to click it. One click. You couldn't do it.",
-        "The button was moving, not teleporting. Try using your mouse next time.",
-    ],
-    [
-        "I TOLD YOU. I LITERALLY SAID. DO. NOT. PRESS. THE. RED. BUTTON.",
-        "You knew it was wrong and you pressed it anyway. Incredible. Truly.",
-        "The red button said 'danger' with every atom of its being. And yet.",
-    ],
-    [
-        "You can't count to five. That is deeply concerning. Five. FIVE.",
-        "One, two, three, four, FIVE. That's it. That's the whole skill you needed.",
-        "How many fingers are on one hand? FIVE. Like the circles. Come ON.",
-    ],
-    [
-        "I said RIGHT SIDE OF THE SCREEN. Not the button LABELED right. The POSITION.",
-        "Left… right… these are words you learned at age four. What happened?",
-        "You trusted the label. The label LIED. I told you to look at the screen!",
-    ],
-    [
-        "ONE. Then TWO. Then THREE. You pressed the wrong number. How?",
-        "It's counting. In order. The thing you do when you play hide and seek.",
-        "The numbers moved a little. A LITTLE. And your brain completely melted.",
-    ],
-    [
-        "I told you to press OK and you did — and it DIDN'T WORK — and you did it AGAIN.",
-        "OK didn't work the first time. So you pressed it again. Definition of insanity.",
-        "Cancel was RIGHT THERE. Tiny, transparent, judging you. And it was right.",
-    ],
-];
-
 const LOSER_TITLES = [
-    "L O S E R !",
-    "PATHETIC !!",
-    "ARE YOU OK?",
-    "SERIOUSLY ?!",
-    "LOL  WHAT ?!",
-    "TRY HARDER!",
-    "SKILL ISSUE",
-    "S T U P I D !"
+    "L O S E R !", "PATHETIC !!", "ARE YOU OK?",
+    "SERIOUSLY ?!", "LOL  WHAT ?!", "TRY HARDER!",
+    "SKILL ISSUE", "S T U P I D !"
 ];
 
 function spawnFailSparks() {
@@ -650,14 +597,11 @@ function spawnFailSparks() {
         const angle = Math.random() * Math.PI * 2;
         const dist = 80 + Math.random() * 260;
         spark.style.cssText = `
-            left: ${40 + Math.random() * 20}%;
-            top: ${30 + Math.random() * 20}%;
-            width: ${4 + Math.random() * 8}px;
-            height: ${4 + Math.random() * 8}px;
-            background: ${['#ff1a1a','#ff6633','#ffcc00','#ff3366'][Math.floor(Math.random()*4)]};
-            --sx: ${Math.cos(angle) * dist}px;
-            --sy: ${Math.sin(angle) * dist}px;
-            animation-delay: ${Math.random() * 0.3}s;
+            left:${40+Math.random()*20}%;top:${30+Math.random()*20}%;
+            width:${4+Math.random()*8}px;height:${4+Math.random()*8}px;
+            background:${['#ff1a1a','#ff6633','#ffcc00','#ff3366'][Math.floor(Math.random()*4)]};
+            --sx:${Math.cos(angle)*dist}px;--sy:${Math.sin(angle)*dist}px;
+            animation-delay:${Math.random()*0.3}s;
         `;
         fs.appendChild(spark);
         setTimeout(() => spark.remove(), 1200);
@@ -698,11 +642,8 @@ function showWin() {
     document.getElementById('main-content').style.display = 'none';
     const ws = document.getElementById('win-screen');
     ws.style.display = 'flex';
-
-    // Son de victoire finale
     stopAll();
     play(A.winscreen);
-
     document.getElementById('win-stats').textContent =
         stagesFailed === 0
             ? `Perfect run! No mistakes !!! Legendary.`
@@ -723,15 +664,7 @@ function loadStage(idx) {
     area.style.cssText = 'position:relative;width:100%;max-width:620px;min-height:220px;display:flex;align-items:center;justify-content:center;flex-wrap:wrap;gap:14px;';
     s.setup(area);
     updateProgress(idx);
-
-    // Petit délai pour ne pas couper le son du win/fail précédent immédiatement
-    // Le son du stage démarre 300ms après le chargement
-    setTimeout(() => {
-        // On ne joue le son du stage que si aucun autre son "important" n'est en cours
-        // (win ou fail sound peuvent encore jouer les premières secondes)
-        play(A.stageSound[idx]);
-    }, 300);
-
+    setTimeout(() => { play(A.stageSound[idx]); }, 300);
     startTimer(s.timeLimit, () => {
         if (!locked) {
             if (s.onLeave) s.onLeave(area);
@@ -743,7 +676,6 @@ function loadStage(idx) {
 // ── SKIP ──
 function checkSkipCondition(area) {
     const halfStages = Math.floor(STAGES.length / 2);
-
     if (attempts > 5 && totalFails > halfStages && stage === 0) {
         const overlay = document.createElement('div');
         overlay.className = 'skip-overlay';
@@ -751,10 +683,9 @@ function checkSkipCondition(area) {
 
         const skipBtn = document.createElement('button');
         skipBtn.className = 'g-btn btn-orange';
-        // Position fixed + z-index élevé pour passer AU-DESSUS de l'overlay
-        skipBtn.style.cssText = 'position:fixed; bottom:20px; right:20px; font-size:14px; z-index:200; box-shadow: 0 0 20px 5px #ff6b35; border: 2px solid white;';
+        skipBtn.style.cssText = 'position:fixed;bottom:20px;right:20px;font-size:14px;z-index:200;box-shadow:0 0 20px 5px #ff6b35;border:2px solid white;';
         skipBtn.textContent = `⏩ SKIP TO STAGE ${halfStages + 1}`;
-        document.body.appendChild(skipBtn); // attaché au body, pas à area
+        document.body.appendChild(skipBtn);
 
         const cleanup = () => {
             if (overlay.parentNode) { overlay.style.opacity = '0'; setTimeout(() => overlay.remove(), 1000); }
@@ -776,23 +707,22 @@ function checkSkipCondition(area) {
 }
 
 // ── INIT ──
+// Appelé à chaque nouvelle partie (depuis l'écran de fail ou depuis startFromIntro)
 function initGame() {
     stage = 0;
     stagesFailed = 0;
     attempts++;
     locked = false;
 
-    // Coupe tout ce qui joue, puis joue l'intro
     stopAll();
-    // Première fois : intro complète, sinon : jingle court de reprise
-    play(attempts === 1 ? A.intro : A.gameIntro);
+    // Première partie : son d'intro, sinon jingle de reprise
+    //play(attempts === 1 ? A.intro : A.gameIntro);
 
     document.getElementById('try-num').textContent = attempts;
     document.getElementById('main-content').style.display = 'flex';
     document.getElementById('win-screen').style.display = 'none';
     document.getElementById('next-btn').style.display = 'none';
-    const fscr = document.getElementById('fail-screen');
-    fscr.style.display = 'none';
+    document.getElementById('fail-screen').style.display = 'none';
 
     const pb = document.getElementById('progress-bar');
     pb.innerHTML = '';
@@ -801,10 +731,13 @@ function initGame() {
         d.className = 'pdot';
         pb.appendChild(d);
     });
+
     loadStage(0);
 }
 
+// ── CLOSE BUTTON ──
 const closeBtn = document.getElementById('close-btn');
 closeBtn.addEventListener('click', () => { window.close(); });
-
-initGame();
+// ── NE PAS lancer initGame() automatiquement ──
+// Le jeu démarre uniquement quand le joueur clique PLAY sur l'écran d'intro.
+// startFromIntro() → initGame()
